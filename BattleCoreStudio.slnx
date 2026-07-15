@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="BattleCoreStudio/BattleCoreStudio.csproj" />
+  <Project Path="BattleCoreStudio/src/BattleCore/BattleCore.csproj" />
 </Solution>

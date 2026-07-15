@@ -1,33 +1,21 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <PropertyGroup>
-    <OutputType>WinExe</OutputType>
-    <TargetFramework>net10.0-windows</TargetFramework>
-    <Nullable>enable</Nullable>
-    <UseWindowsForms>true</UseWindowsForms>
-    <ImplicitUsings>enable</ImplicitUsings>
-  </PropertyGroup>
+	<PropertyGroup>
+		<OutputType>WinExe</OutputType>
+		<TargetFramework>net10.0-windows</TargetFramework>
+		<Nullable>enable</Nullable>
+		<UseWindowsForms>true</UseWindowsForms>
+		<ImplicitUsings>enable</ImplicitUsings>
+	</PropertyGroup>
 
-  <ItemGroup>
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\src\BattleCore.Console\Program.cs" Link="src\BattleCore.Console\Program.cs" />
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\src\BattleCore\ICommand.cs" Link="src\BattleCore\ICommand.cs" />
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\src\BattleCore\IGameEvent.cs" Link="src\BattleCore\IGameEvent.cs" />
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\src\BattleCore\ISimulationSystem.cs" Link="src\BattleCore\ISimulationSystem.cs" />
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\src\BattleCore\SimulationContext.cs" Link="src\BattleCore\SimulationContext.cs" />
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\src\BattleCore\SimulationEngine.cs" Link="src\BattleCore\SimulationEngine.cs" />
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\src\BattleCore\World.cs" Link="src\BattleCore\World.cs" />
-    <Compile Include="..\..\..\BattleCore_v0.1_Commit1\tests\BattleCore.Tests\SimulationEngineTests.cs" Link="tests\BattleCore.Tests\SimulationEngineTests.cs" />
-  </ItemGroup>
+	<ItemGroup>
+		<Compile Remove="src\BattleCore\**" />
+		<EmbeddedResource Remove="src\BattleCore\**" />
+		<None Remove="src\BattleCore\**" />
+	</ItemGroup>
 
-  <ItemGroup>
-    <None Include="..\..\..\BattleCore_v0.1_Commit1\.gitignore" Link=".gitignore" />
-    <None Include="..\..\..\BattleCore_v0.1_Commit1\README.md" Link="README.md" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <Folder Include="src\BattleCore.Console\" />
-    <Folder Include="tests\BattleCore.Tests\" />
-    <Folder Include="docs\" />
-  </ItemGroup>
+	<ItemGroup>
+		<ProjectReference Include="src\BattleCore\BattleCore.csproj" />
+	</ItemGroup>
 
 </Project>
