@@ -1,6 +1,6 @@
 ﻿namespace BattleCoreStudio
 {
-    partial class Form1
+    partial class frMain
     {
         /// <summary>
         ///  Required designer variable.

@@ -1,8 +1,8 @@
 namespace BattleCoreStudio
 {
-    public partial class Form1 : Form
+    public partial class frMain : Form
     {
-        public Form1()
+        public frMain()
         {
             InitializeComponent();
         }
