@@ -68,6 +68,9 @@ namespace BattleCore.Scenario
                     Dislike = r.Dislike,
                 });
 
+            foreach (var a in data.Alliances)
+                world.Alliances.Add(new Alliance(a.Id, a.ClanId1, a.ClanId2, a.DurationTicks));
+
             return (world, data.Title, data.EventTriggers);
         }
     }

@@ -57,6 +57,7 @@
     { "id": 1, "fromOfficerId": 5, "toOfficerId": 3, "trust": 0, "respect": 0, "dislike": 50 },
     { "id": 2, "fromOfficerId": 3, "toOfficerId": 1, "trust": 0, "respect": 0, "dislike": 70 }
   ],
+  "alliances": [],
   "eventTriggers": [
     {
       "id": "sekigahara_start",

@@ -13,6 +13,7 @@ namespace BattleCore.Scenario
         public List<MembershipData>   Memberships   { get; set; } = new();
         public List<ArmyData>         Armies        { get; set; } = new();
         public List<RelationshipData> Relationships { get; set; } = new();
+        public List<AllianceData>     Alliances     { get; set; } = new();
         public List<EventTriggerData> EventTriggers { get; set; } = new();
     }
 
@@ -67,6 +68,15 @@ namespace BattleCore.Scenario
         public int Trust         { get; set; }
         public int Respect       { get; set; }
         public int Dislike       { get; set; }
+    }
+
+    /// <summary>初期同盟のDTO。</summary>
+    public class AllianceData
+    {
+        public int Id            { get; set; }
+        public int ClanId1       { get; set; }
+        public int ClanId2       { get; set; }
+        public int DurationTicks { get; set; } = 20;
     }
 
     /// <summary>

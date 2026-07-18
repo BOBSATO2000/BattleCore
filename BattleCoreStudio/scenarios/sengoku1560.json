@@ -54,6 +54,9 @@
   "relationships": [
     { "id": 1, "fromOfficerId": 4, "toOfficerId": 1, "trust": 0, "respect": 0, "dislike": 60 }
   ],
+  "alliances": [
+    { "id": 1, "clanId1": 1, "clanId2": 3, "durationTicks": 8 }
+  ],
   "eventTriggers": [
     {
       "id": "honnoji",
