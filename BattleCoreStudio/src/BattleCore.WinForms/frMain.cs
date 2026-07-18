@@ -160,9 +160,18 @@ namespace BattleCoreStudio
                     3 => Color.FromArgb(80,  180, 80),
                     _ => Color.Gray,
                 };
+                var allies = world.Alliances
+                    .Where(a => a.Involves(clan.Id))
+                    .Select(a =>
+                    {
+                        var allyClanId = a.ClanId1 == clan.Id ? a.ClanId2 : a.ClanId1;
+                        return world.Clans.FirstOrDefault(c => c.Id == allyClanId)?.Name ?? "?";
+                    })
+                    .ToList();
+                var allyText = allies.Any() ? $" [{string.Join(",", allies)}と同盟]" : "";
                 var lbl = new Label
                 {
-                    Text      = $"■ {clan.Name}  兵:{totalSoldiers:#,0}  軍:{activeArmies}",
+                    Text      = $"■ {clan.Name}  兵:{totalSoldiers:#,0}  軍:{activeArmies}{allyText}",
                     ForeColor = color,
                     Location  = new Point(4, py),
                     Size      = new Size(190, 20),
