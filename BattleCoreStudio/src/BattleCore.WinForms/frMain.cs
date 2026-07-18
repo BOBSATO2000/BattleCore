@@ -216,10 +216,12 @@ namespace BattleCoreStudio
                         return world.Clans.FirstOrDefault(c => c.Id == allyClanId)?.Name ?? "?";
                     })
                     .ToList();
+                var castleCount = world.Castles.Count(c => c.OwnerClanId == clan.Id);
+                var castleText  = castleCount > 0 ? $" 城:{castleCount}" : "";
                 var allyText = allies.Any() ? $" [{string.Join(",", allies)}と同盟]" : "";
                 var lbl = new Label
                 {
-                    Text      = $"■ {clan.Name}  兵:{totalSoldiers:#,0}  軍:{activeArmies}{allyText}",
+                    Text      = $"■ {clan.Name}  兵:{totalSoldiers:#,0}  軍:{activeArmies}{castleText}{allyText}",
                     ForeColor = color,
                     Location  = new Point(4, py),
                     Size      = new Size(190, 20),
