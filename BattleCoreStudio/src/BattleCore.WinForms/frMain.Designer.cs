@@ -14,6 +14,10 @@ namespace BattleCoreStudio
         private void InitializeComponent()
         {
             btnStep       = new Button();
+            btnAuto       = new Button();
+            btnStop       = new Button();
+            cmbSpeed      = new ComboBox();
+            lblSpeed      = new Label();
             lblStatus     = new Label();
             pnlMap        = new Panel();
             lstArmies     = new ListBox();
@@ -25,13 +29,38 @@ namespace BattleCoreStudio
 
             // btnStep
             btnStep.Location = new Point(12, 12);
-            btnStep.Size     = new Size(120, 32);
+            btnStep.Size     = new Size(100, 32);
             btnStep.Text     = "1ターン進める";
             btnStep.Click   += btnStep_Click;
 
+            // btnAuto
+            btnAuto.Location = new Point(120, 12);
+            btnAuto.Size     = new Size(80, 32);
+            btnAuto.Text     = "▶ オート";
+            btnAuto.Click   += btnAuto_Click;
+
+            // btnStop
+            btnStop.Location = new Point(208, 12);
+            btnStop.Size     = new Size(60, 32);
+            btnStop.Text     = "■ 停止";
+            btnStop.Enabled  = false;
+            btnStop.Click   += btnStop_Click;
+
+            // lblSpeed
+            lblSpeed.Location = new Point(280, 18);
+            lblSpeed.Size     = new Size(36, 20);
+            lblSpeed.Text     = "速度:";
+
+            // cmbSpeed
+            cmbSpeed.Location     = new Point(318, 14);
+            cmbSpeed.Size         = new Size(80, 24);
+            cmbSpeed.DropDownStyle = ComboBoxStyle.DropDownList;
+            cmbSpeed.Items.AddRange(new object[] { "遅い(2s)", "普通(1s)", "速い(0.5s)" });
+            cmbSpeed.SelectedIndex = 1;
+
             // lblStatus
-            lblStatus.Location  = new Point(144, 18);
-            lblStatus.Size      = new Size(400, 20);
+            lblStatus.Location  = new Point(410, 18);
+            lblStatus.Size      = new Size(360, 20);
             lblStatus.Text      = "Tick: 0  Year: 1560  春";
 
             // pnlMap
@@ -66,7 +95,8 @@ namespace BattleCoreStudio
             Text       = "BattleCoreStudio";
             Controls.AddRange(new Control[]
             {
-                btnStep, lblStatus,
+                btnStep, btnAuto, btnStop, lblSpeed, cmbSpeed,
+                lblStatus,
                 pnlMap,
                 lblArmies, lstArmies,
                 lblEvents, lstEvents
@@ -75,12 +105,16 @@ namespace BattleCoreStudio
             ResumeLayout(false);
         }
 
-        private Button  btnStep;
-        private Label   lblStatus;
-        private Panel   pnlMap;
-        private ListBox lstArmies;
-        private ListBox lstEvents;
-        private Label   lblArmies;
-        private Label   lblEvents;
+        private Button   btnStep;
+        private Button   btnAuto;
+        private Button   btnStop;
+        private ComboBox cmbSpeed;
+        private Label    lblSpeed;
+        private Label    lblStatus;
+        private Panel    pnlMap;
+        private ListBox  lstArmies;
+        private ListBox  lstEvents;
+        private Label    lblArmies;
+        private Label    lblEvents;
     }
 }

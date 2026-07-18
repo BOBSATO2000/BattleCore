@@ -14,6 +14,7 @@ namespace BattleCoreStudio
     {
         private SimulationEngine engine = null!;
         private WorldState       world  = null!;
+        private readonly System.Windows.Forms.Timer autoTimer = new();
 
         // Hex描画サイズ
         private const int HexSize = 36;
@@ -22,6 +23,8 @@ namespace BattleCoreStudio
         {
             InitializeComponent();
             InitSimulation();
+
+            autoTimer.Tick += (s, e) => { engine.Step(); UpdateUI(); };
         }
 
         // -------------------------------------------------------
@@ -85,6 +88,7 @@ namespace BattleCoreStudio
             engine.Register(new MovementSystem());
             engine.Register(new BattleSystem());
             engine.Register(new LoyaltySystem());
+            engine.Register(new RecruitmentSystem());
 
             UpdateUI();
         }
@@ -96,6 +100,28 @@ namespace BattleCoreStudio
         {
             engine.Step();
             UpdateUI();
+        }
+
+        private void btnAuto_Click(object sender, EventArgs e)
+        {
+            autoTimer.Interval = cmbSpeed.SelectedIndex switch
+            {
+                0 => 2000,
+                2 => 500,
+                _ => 1000,
+            };
+            autoTimer.Start();
+            btnAuto.Enabled = false;
+            btnStop.Enabled = true;
+            btnStep.Enabled = false;
+        }
+
+        private void btnStop_Click(object sender, EventArgs e)
+        {
+            autoTimer.Stop();
+            btnAuto.Enabled = true;
+            btnStop.Enabled = false;
+            btnStep.Enabled = true;
         }
 
         // -------------------------------------------------------
@@ -131,6 +157,13 @@ namespace BattleCoreStudio
                     var clan    = world.Clans.FirstOrDefault(c => c.Id == b.FromClanId);
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] {officer?.Name ?? "?"} が {clan?.Name ?? "?"} を離反！");
+                }
+                else if (ev is RecruitEvent r)
+                {
+                    var officer = world.Officers.FirstOrDefault(o => o.Id == r.OfficerId);
+                    var clan    = world.Clans.FirstOrDefault(c => c.Id == r.ToClanId);
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] {officer?.Name ?? "?"} が {clan?.Name ?? "?"} に仕官！");
                 }
             }
 
