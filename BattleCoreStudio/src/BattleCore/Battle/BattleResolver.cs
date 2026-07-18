@@ -1,4 +1,5 @@
 using BattleCore.Entities;
+using BattleCore.Map;
 using BattleCore.Systems.Battle;
 using BattleCore.World;
 using System;
@@ -24,9 +25,13 @@ namespace BattleCore.Battle
             var attackerOfficer = GetOfficer(battle.Attacker, world);
             var defenderOfficer = GetOfficer(battle.Defender, world);
 
+            var defenderHex = world.Map.GetHexById(battle.Defender.CurrentHexId);
+            var defenderTerrain = defenderHex?.Terrain ?? TerrainType.Plain;
+
             var result = calculator.Calculate(
                 battle.Attacker, battle.Defender,
-                attackerOfficer, defenderOfficer);
+                attackerOfficer, defenderOfficer,
+                defenderTerrain);
 
             var winnerLosses = result.WinnerLosses;
 

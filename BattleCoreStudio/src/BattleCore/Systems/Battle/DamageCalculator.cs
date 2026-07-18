@@ -1,4 +1,5 @@
 using BattleCore.Entities;
+using BattleCore.Map;
 using System;
 
 namespace BattleCore.Systems.Battle
@@ -20,35 +21,44 @@ namespace BattleCore.Systems.Battle
         private const int DefaultStat = 100;
 
         public BattleResult Calculate(Army left, Army right)
-            => Calculate(left, right, null, null);
+            => Calculate(left, right, null, null, TerrainType.Plain);
 
-        /// <summary>
-        /// Officer能力値を考慮して戦闘結果を計算する。
-        /// </summary>
         public BattleResult Calculate(
             Army left,
             Army right,
             Officer? leftOfficer,
             Officer? rightOfficer)
+            => Calculate(left, right, leftOfficer, rightOfficer, TerrainType.Plain);
+
+        /// <summary>
+        /// Officer能力値・地形を考慮して戦闘結果を計算する。
+        /// defenderTerrain: 防御側が立つHexの地形（Forest=敗者損害20%軽減、Mountain=30%軽減）
+        /// </summary>
+        public BattleResult Calculate(
+            Army left,
+            Army right,
+            Officer? leftOfficer,
+            Officer? rightOfficer,
+            TerrainType defenderTerrain)
         {
             // 実効兵力 = 兵力 × (Leadership / 100)
             var leftPower  = ApplyLeadership(left.Soldiers,  leftOfficer);
             var rightPower = ApplyLeadership(right.Soldiers, rightOfficer);
 
             Army winner, loser;
-            Officer? winnerOfficer, loserOfficer;
+            Officer? winnerOfficer;
             int loserSoldiers;
 
             if (leftPower >= rightPower)
             {
                 winner = left;  winnerOfficer = leftOfficer;
-                loser  = right; loserOfficer  = rightOfficer;
+                loser  = right;
                 loserSoldiers = right.Soldiers;
             }
             else
             {
                 winner = right; winnerOfficer = rightOfficer;
-                loser  = left;  loserOfficer  = leftOfficer;
+                loser  = left;
                 loserSoldiers = left.Soldiers;
             }
 
@@ -58,6 +68,15 @@ namespace BattleCore.Systems.Battle
                 * GetCourageFactor(winnerOfficer));
 
             winnerLosses = Math.Max(0, winnerLosses);
+
+            // 地形ボーナス：防御側（loser）の損害を軽減
+            var terrainFactor = defenderTerrain switch
+            {
+                TerrainType.Forest   => 0.80,
+                TerrainType.Mountain => 0.70,
+                _                    => 1.00
+            };
+            loserSoldiers = (int)(loserSoldiers * terrainFactor);
 
             return new BattleResult(
                 winner:       winner,
