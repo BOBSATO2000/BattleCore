@@ -45,6 +45,7 @@ namespace BattleCoreStudio
             Text = $"BattleCoreStudio - {title}";
 
             engine = new SimulationEngine(world);
+            engine.Register(new CastleSystem());
             engine.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
             engine.Register(new CommandExecutionSystem());
             engine.Register(new MovementSystem());
@@ -251,10 +252,17 @@ namespace BattleCoreStudio
                     var terrainTag = bl.TerrainBonus
                         ? bl.Terrain == TerrainType.Forest ? "[森-20%]" : "[山-30%]"
                         : "";
-                    var weatherTag = bl.RainPenalty ? "[雨-10%]" : "";
+                    var weatherTag = bl.RainPenalty  ? "[雨-10%]" : "";
+                    var castleTag  = bl.CastleBonus  ? "[城-20%]"  : "";
                     var growthTag  = bl.GrowthDetail != null ? $" ★{bl.GrowthDetail}" : "";
                     lstEvents.Items.Insert(0,
-                        $"[Tick{t.Tick}] {bl.WinnerName}勝 損:{bl.WinnerLosses} / {bl.LoserName}敗 損:{bl.LoserLosses}{terrainTag}{weatherTag}{growthTag}");
+                        $"[Tick{t.Tick}] {bl.WinnerName}勝 損:{bl.WinnerLosses} / {bl.LoserName}敗 損:{bl.LoserLosses}{terrainTag}{weatherTag}{castleTag}{growthTag}");
+                }
+                else if (ev is CastleCapturedEvent cc)
+                {
+                    var clan = world.Clans.FirstOrDefault(c => c.Id == cc.NewOwnerClanId);
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] 「{cc.CastleName}」を {clan?.Name ?? "?"} が占領！");
                 }
                 else if (ev is BetrayalEvent b)
                 {
@@ -318,6 +326,23 @@ namespace BattleCoreStudio
                 // Hex ID
                 g.DrawString(hex.Id.ToString(), new Font("Arial", 7f),
                     Brushes.White, center.X - 6, center.Y - 6);
+
+                // 城アイコン
+                var castle = world.Castles.FirstOrDefault(c => c.HexId == hex.Id);
+                if (castle != null)
+                {
+                    var castleColor = castle.OwnerClanId switch
+                    {
+                        1 => Color.FromArgb(220, 80,  80),
+                        2 => Color.FromArgb(80,  80,  220),
+                        3 => Color.FromArgb(80,  180, 80),
+                        4 => Color.FromArgb(200, 160, 40),
+                        _ => Color.White,
+                    };
+                    g.DrawString("⛩", new Font("Segoe UI Emoji", 11f),
+                        new SolidBrush(castleColor),
+                        center.X - 9, center.Y + 8);
+                }
             }
 
             // 移動先矢印（DestinationHexId がある軍）

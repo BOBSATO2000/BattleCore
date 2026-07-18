@@ -14,6 +14,7 @@ namespace BattleCore.Scenario
         public List<ArmyData>         Armies        { get; set; } = new();
         public List<RelationshipData> Relationships { get; set; } = new();
         public List<AllianceData>     Alliances     { get; set; } = new();
+        public List<CastleData>       Castles       { get; set; } = new();
         public List<EventTriggerData> EventTriggers { get; set; } = new();
     }
 
@@ -77,6 +78,16 @@ namespace BattleCore.Scenario
         public int ClanId1       { get; set; }
         public int ClanId2       { get; set; }
         public int DurationTicks { get; set; } = 20;
+    }
+
+    /// <summary>城・拠点のDTO。</summary>
+    public class CastleData
+    {
+        public int    Id                   { get; set; }
+        public string Name                 { get; set; } = "";
+        public int    HexId                { get; set; }
+        public int    OwnerClanId          { get; set; } = 0;
+        public int    ReinforcementPerTick { get; set; } = 50;
     }
 
     /// <summary>

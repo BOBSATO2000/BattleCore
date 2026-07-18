@@ -24,12 +24,15 @@ namespace BattleCore.Battle
 
             var defenderHex     = world.Map.GetHexById(battle.Defender.CurrentHexId);
             var defenderTerrain = defenderHex?.Terrain ?? TerrainType.Plain;
+            var hasCastle       = world.Castles.Any(c => c.HexId == battle.Defender.CurrentHexId
+                                                      && c.OwnerClanId == battle.Defender.ClanId);
 
             var result = calculator.Calculate(
                 battle.Attacker, battle.Defender,
                 attackerOfficer, defenderOfficer,
                 defenderTerrain,
-                world.Weather);
+                world.Weather,
+                hasCastle);
 
             var winnerLosses = result.WinnerLosses;
 
@@ -84,6 +87,7 @@ namespace BattleCore.Battle
                 defenderTerrain, world.Weather,
                 terrainBonus: defenderTerrain != TerrainType.Plain,
                 rainPenalty:  world.Weather == Weather.Rain,
+                castleBonus:  hasCastle,
                 growthDetail);
         }
 

@@ -49,7 +49,8 @@ namespace BattleCore.Systems.Battle
             Officer? leftOfficer,
             Officer? rightOfficer,
             TerrainType defenderTerrain,
-            Weather weather)
+            Weather weather,
+            bool hasCastle = false)
         {
             // 実効兵力 = 兵力 × (Leadership / 100)
             var leftPower  = ApplyLeadership(left.Soldiers,  leftOfficer);
@@ -94,6 +95,10 @@ namespace BattleCore.Systems.Battle
                 winnerLosses  = (int)(winnerLosses  * 0.90);
                 loserSoldiers = (int)(loserSoldiers * 0.90);
             }
+
+            // 城ボーナス：防御側に城がある場合、敗者損害20%軽減
+            if (hasCastle)
+                loserSoldiers = (int)(loserSoldiers * 0.80);
 
             return new BattleResult(
                 winner:       winner,

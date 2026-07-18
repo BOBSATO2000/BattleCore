@@ -57,6 +57,12 @@
   "alliances": [
     { "id": 1, "clanId1": 1, "clanId2": 3, "durationTicks": 8 }
   ],
+  "castles": [
+    { "id": 1, "name": "清洲城",   "hexId":  1, "ownerClanId": 1, "reinforcementPerTick": 60 },
+    { "id": 2, "name": "山城",     "hexId":  5, "ownerClanId": 1, "reinforcementPerTick": 40 },
+    { "id": 3, "name": "軍貳城",   "hexId": 21, "ownerClanId": 2, "reinforcementPerTick": 60 },
+    { "id": 4, "name": "春日山城", "hexId": 23, "ownerClanId": 3, "reinforcementPerTick": 60 }
+  ],
   "eventTriggers": [
     {
       "id": "honnoji",

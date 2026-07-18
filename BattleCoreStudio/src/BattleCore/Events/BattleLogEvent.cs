@@ -17,6 +17,7 @@ namespace BattleCore.Events
         public Weather Weather      { get; }
         public bool   TerrainBonus  { get; }
         public bool   RainPenalty   { get; }
+        public bool   CastleBonus   { get; }
         public string? GrowthDetail { get; }  // 例: "謙信 統率+1(156)"
 
         public BattleLogEvent(
@@ -24,6 +25,7 @@ namespace BattleCore.Events
             int winnerLosses, int loserLosses,
             TerrainType terrain, Weather weather,
             bool terrainBonus, bool rainPenalty,
+            bool castleBonus,
             string? growthDetail)
         {
             WinnerName   = winnerName;
@@ -34,6 +36,7 @@ namespace BattleCore.Events
             Weather      = weather;
             TerrainBonus = terrainBonus;
             RainPenalty  = rainPenalty;
+            CastleBonus  = castleBonus;
             GrowthDetail = growthDetail;
         }
     }

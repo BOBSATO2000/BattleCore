@@ -36,6 +36,9 @@ namespace BattleCore.World
         /// <summary>ヘックスマップ。地理ルールを管理する。</summary>
         public GameMap Map { get; } = new();
 
+        /// <summary>城・拠点リスト。CastleSystem が管理する。</summary>
+        public List<Castle> Castles { get; } = new();
+
         /// <summary>現在の天気。BattleResolver・MovementSystem が参照する。GameTime.Advance()後にUIから同期する。</summary>
         public Weather Weather { get; set; } = Weather.Sunny;
 

@@ -62,6 +62,10 @@
     { "id": 3, "fromOfficerId": 5, "toOfficerId": 4, "trust": 80, "respect": 90, "dislike": 0 }
   ],
   "alliances": [],
+  "castles": [
+    { "id": 1, "name": "春日山城", "hexId":  8, "ownerClanId": 1, "reinforcementPerTick": 60 },
+    { "id": 2, "name": "海津城",   "hexId": 18, "ownerClanId": 2, "reinforcementPerTick": 60 }
+  ],
   "eventTriggers": [
     {
       "id": "kessen_start",

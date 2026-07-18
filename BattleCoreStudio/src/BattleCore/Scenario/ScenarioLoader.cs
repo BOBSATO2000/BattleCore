@@ -71,6 +71,9 @@ namespace BattleCore.Scenario
             foreach (var a in data.Alliances)
                 world.Alliances.Add(new Alliance(a.Id, a.ClanId1, a.ClanId2, a.DurationTicks));
 
+            foreach (var c in data.Castles)
+                world.Castles.Add(new Castle(c.Id, c.Name, c.HexId, c.OwnerClanId, c.ReinforcementPerTick));
+
             return (world, data.Title, data.EventTriggers);
         }
     }
