@@ -1,22 +1,23 @@
 using BattleCore.Entities;
 using BattleCore.Systems.Battle;
 using BattleCore.World;
+using System;
 using System.Linq;
 
 namespace BattleCore.Battle
 {
     /// <summary>
     /// 1件の戦闘を解決し、兵力を更新する。
-    /// BattleSystem から利用され、「どう戦うか」のルールを担当する。
     /// Officer が配属されている場合は Leadership / Strategy / Courage を DamageCalculator へ渡す。
+    /// 攻撃側・防御側のOfficer間のTrustが高い場合（>=60）、勝者損害を5%軽減する。
     /// </summary>
     public class BattleResolver
     {
         private readonly DamageCalculator calculator = new();
 
-        /// <summary>
-        /// 戦闘を解決する。WorldState から指揮官を取得し、Officer補正込みでダメージを計算する。
-        /// </summary>
+        public const int TrustBonusThreshold = 60;
+        private const double TrustBonusFactor = 0.95;
+
         public void Resolve(Battle battle, WorldState world)
         {
             var attackerOfficer = GetOfficer(battle.Attacker, world);
@@ -26,11 +27,24 @@ namespace BattleCore.Battle
                 battle.Attacker, battle.Defender,
                 attackerOfficer, defenderOfficer);
 
+            var winnerLosses = result.WinnerLosses;
+
+            // Trust>=60 の場合、勝者損害を5%軽減
+            if (attackerOfficer != null && defenderOfficer != null)
+            {
+                var winnerOfficer = result.Winner == battle.Attacker ? attackerOfficer : defenderOfficer;
+                var loserOfficer  = result.Winner == battle.Attacker ? defenderOfficer : attackerOfficer;
+                var rel = world.Relationships.FirstOrDefault(
+                    r => r.FromOfficerId == winnerOfficer.Id && r.ToOfficerId == loserOfficer.Id);
+                if (rel != null && rel.Trust >= TrustBonusThreshold)
+                    winnerLosses = (int)(winnerLosses * TrustBonusFactor);
+            }
+
             battle.Attacker.LoseSoldiers(
-                battle.Attacker == result.Winner ? result.WinnerLosses : result.LoserLosses);
+                battle.Attacker == result.Winner ? winnerLosses : result.LoserLosses);
 
             battle.Defender.LoseSoldiers(
-                battle.Defender == result.Winner ? result.WinnerLosses : result.LoserLosses);
+                battle.Defender == result.Winner ? winnerLosses : result.LoserLosses);
         }
 
         private static Officer? GetOfficer(Army army, WorldState world)

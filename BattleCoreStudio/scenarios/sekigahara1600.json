@@ -1,0 +1,82 @@
+{
+  "title": "関ヶ原 1600",
+  "startYear": 1600,
+  "map": [
+    { "id":  1, "q": 0, "r": 0, "terrain": "Mountain" },
+    { "id":  2, "q": 0, "r": 1, "terrain": "Forest"   },
+    { "id":  3, "q": 0, "r": 2, "terrain": "Forest"   },
+    { "id":  4, "q": 0, "r": 3, "terrain": "Forest"   },
+    { "id":  5, "q": 0, "r": 4, "terrain": "Mountain" },
+    { "id":  6, "q": 1, "r": 0, "terrain": "Plain"    },
+    { "id":  7, "q": 1, "r": 1, "terrain": "Plain"    },
+    { "id":  8, "q": 1, "r": 2, "terrain": "Plain"    },
+    { "id":  9, "q": 1, "r": 3, "terrain": "Plain"    },
+    { "id": 10, "q": 1, "r": 4, "terrain": "Plain"    },
+    { "id": 11, "q": 2, "r": 0, "terrain": "Plain"    },
+    { "id": 12, "q": 2, "r": 1, "terrain": "Plain"    },
+    { "id": 13, "q": 2, "r": 2, "terrain": "Plain"    },
+    { "id": 14, "q": 2, "r": 3, "terrain": "Plain"    },
+    { "id": 15, "q": 2, "r": 4, "terrain": "Plain"    },
+    { "id": 16, "q": 3, "r": 0, "terrain": "Plain"    },
+    { "id": 17, "q": 3, "r": 1, "terrain": "Plain"    },
+    { "id": 18, "q": 3, "r": 2, "terrain": "Mountain" },
+    { "id": 19, "q": 3, "r": 3, "terrain": "Plain"    },
+    { "id": 20, "q": 3, "r": 4, "terrain": "Plain"    },
+    { "id": 21, "q": 4, "r": 0, "terrain": "Forest"   },
+    { "id": 22, "q": 4, "r": 1, "terrain": "Plain"    },
+    { "id": 23, "q": 4, "r": 2, "terrain": "Plain"    },
+    { "id": 24, "q": 4, "r": 3, "terrain": "Plain"    },
+    { "id": 25, "q": 4, "r": 4, "terrain": "Forest"   }
+  ],
+  "clans": [
+    { "id": 1, "name": "東軍" },
+    { "id": 2, "name": "西軍" }
+  ],
+  "officers": [
+    { "id": 1, "name": "家康",   "leadership": 160, "strategy": 160, "courage": 120, "ambition": 90, "loyalty": 95, "intelligence": 160 },
+    { "id": 2, "name": "秀忠",   "leadership": 120, "strategy": 100, "courage": 100, "ambition": 50, "loyalty": 95, "intelligence": 100 },
+    { "id": 3, "name": "三成",   "leadership": 110, "strategy": 150, "courage":  80, "ambition": 70, "loyalty": 90, "intelligence": 155 },
+    { "id": 4, "name": "元就",   "leadership": 130, "strategy": 130, "courage": 110, "ambition": 40, "loyalty": 85, "intelligence": 130 },
+    { "id": 5, "name": "秀秋",   "leadership": 100, "strategy":  80, "courage":  90, "ambition": 60, "loyalty": 30, "intelligence":  80 }
+  ],
+  "memberships": [
+    { "id": 1, "officerId": 1, "clanId": 1, "loyalty": 95 },
+    { "id": 2, "officerId": 2, "clanId": 1, "loyalty": 95 },
+    { "id": 3, "officerId": 3, "clanId": 2, "loyalty": 90 },
+    { "id": 4, "officerId": 4, "clanId": 2, "loyalty": 85 },
+    { "id": 5, "officerId": 5, "clanId": 2, "loyalty": 30 }
+  ],
+  "armies": [
+    { "id": 1, "clanId": 1, "currentHexId":  1, "soldiers": 1000, "officerId": 1 },
+    { "id": 2, "clanId": 1, "currentHexId":  6, "soldiers":  800, "officerId": 2 },
+    { "id": 3, "clanId": 2, "currentHexId": 25, "soldiers": 1000, "officerId": 3 },
+    { "id": 4, "clanId": 2, "currentHexId": 21, "soldiers":  900, "officerId": 4 },
+    { "id": 5, "clanId": 2, "currentHexId": 23, "soldiers":  600, "officerId": 5 }
+  ],
+  "relationships": [
+    { "id": 1, "fromOfficerId": 5, "toOfficerId": 3, "trust": 0, "respect": 0, "dislike": 50 },
+    { "id": 2, "fromOfficerId": 3, "toOfficerId": 1, "trust": 0, "respect": 0, "dislike": 70 }
+  ],
+  "eventTriggers": [
+    {
+      "id": "sekigahara_start",
+      "minTick": 1,
+      "message": "【関ヶ原の戦い開幕】東軍・西軍、天下分け目の決戦が始まった！"
+    },
+    {
+      "id": "hideaki_betrayal",
+      "minTick": 4,
+      "officerId": 5,
+      "minDislike": 60,
+      "maxLoyalty": 35,
+      "message": "【小早川秀秋の裏切り】秀秋、西軍を見限り東軍へ寝返る！戦局が一変する！"
+    },
+    {
+      "id": "mitsunari_desperate",
+      "minTick": 6,
+      "officerId": 3,
+      "minDislike": 80,
+      "message": "【三成、窮地に立つ】石田三成の孤立が深まる。西軍の結束が崩れつつある…"
+    }
+  ]
+}

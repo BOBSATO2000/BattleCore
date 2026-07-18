@@ -76,9 +76,10 @@ namespace BattleCoreStudio
             lblArmies.Text     = "軍隊";
 
             // lstArmies
-            lstArmies.Location  = new Point(584, 78);
-            lstArmies.Size      = new Size(200, 220);
-            lstArmies.Font      = new Font("MS Gothic", 9f);
+            lstArmies.Location         = new Point(584, 78);
+            lstArmies.Size             = new Size(200, 220);
+            lstArmies.Font             = new Font("MS Gothic", 9f);
+            lstArmies.SelectedIndexChanged += lstArmies_SelectedIndexChanged;
 
             // lblEvents
             lblEvents.Location = new Point(584, 310);

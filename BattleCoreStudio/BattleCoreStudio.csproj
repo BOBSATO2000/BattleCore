@@ -9,6 +9,12 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+		<Content Include="scenarios\**\*.json">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+	</ItemGroup>
+
+	<ItemGroup>
 		<Compile Remove="src\BattleCore\**" />
 		<EmbeddedResource Remove="src\BattleCore\**" />
 		<None Remove="src\BattleCore\**" />

@@ -1,8 +1,7 @@
 using BattleCore.AI;
-using BattleCore.Entities;
 using BattleCore.Events;
 using BattleCore.Map;
-using BattleCore.Relations;
+using BattleCore.Scenario;
 using BattleCore.Simulation;
 using BattleCore.Systems;
 using BattleCore.Systems.Battle;
@@ -32,56 +31,19 @@ namespace BattleCoreStudio
         // -------------------------------------------------------
         private void InitSimulation()
         {
-            world = new WorldState();
+            var scenariosFolder = Path.Combine(
+                AppDomain.CurrentDomain.BaseDirectory, "scenarios");
 
-            // マップ生成（5×5のHexグリッド）
-            int id = 1;
-            for (int q = 0; q < 5; q++)
-            for (int r = 0; r < 5; r++)
+            using var dlg = new frScenarioSelect(scenariosFolder);
+            if (dlg.ShowDialog() != DialogResult.OK || dlg.SelectedPath == null)
             {
-                var terrain = (q == 2 && r == 2) ? TerrainType.Mountain
-                            : (q % 3 == 0)       ? TerrainType.Forest
-                            : TerrainType.Plain;
-                world.Map.AddHex(new Hex(id++, q, r, terrain));
+                Application.Exit();
+                return;
             }
 
-            // 勢力
-            var clanA = new Clan(1) { Name = "織田" };
-            var clanB = new Clan(2) { Name = "武田" };
-            var clanC = new Clan(3) { Name = "上杉" };
-            world.Clans.AddRange(new[] { clanA, clanB, clanC });
+            (world, var title, var triggers) = ScenarioLoader.Load(dlg.SelectedPath);
+            Text = $"BattleCoreStudio - {title}";
 
-            // 武将
-            var nobunaga  = new Officer(1, "信長") { Leadership = 150, Strategy = 120, Courage = 130, Ambition = 70, Loyalty = 80 };
-            var shingen   = new Officer(2, "信玄") { Leadership = 140, Strategy = 150, Courage = 110, Ambition = 50, Loyalty = 90 };
-            var kenshin   = new Officer(3, "謙信") { Leadership = 145, Strategy = 140, Courage = 140, Ambition = 30, Loyalty = 95 };
-            var mitsuhide = new Officer(4, "光秀") { Leadership = 120, Strategy = 130, Courage = 100, Ambition = 90, Loyalty = 40 };
-            world.Officers.AddRange(new[] { nobunaga, shingen, kenshin, mitsuhide });
-
-            world.Memberships.Add(new Membership(1, nobunaga.Id,  clanA.Id) { Loyalty = 80 });
-            world.Memberships.Add(new Membership(2, mitsuhide.Id, clanA.Id) { Loyalty = 40 }); // 野心家
-            world.Memberships.Add(new Membership(3, shingen.Id,   clanB.Id) { Loyalty = 90 });
-            world.Memberships.Add(new Membership(4, kenshin.Id,   clanC.Id) { Loyalty = 95 });
-
-            // 光秀→信長への反感（離反の布石）
-            world.Relationships.Add(new Relationship(1, mitsuhide.Id, nobunaga.Id) { Dislike = 60 });
-
-            // 軍隊（左上・右上・下中央に配置）
-            var armyA = new Army(1, 1, clanA.Id, 1);   // 織田: q=0,r=0 左上
-            armyA.AssignOfficer(nobunaga.Id);
-
-            var armyA2 = new Army(2, 1, clanA.Id, 5);  // 織田第2軍: q=0,r=4 左下
-            armyA2.AssignOfficer(mitsuhide.Id);
-
-            var armyB = new Army(3, 2, clanB.Id, 21);  // 武田: q=4,r=0 右上
-            armyB.AssignOfficer(shingen.Id);
-
-            var armyC = new Army(4, 3, clanC.Id, 23);  // 上杉: q=4,r=2 右中
-            armyC.AssignOfficer(kenshin.Id);
-
-            world.Armies.AddRange(new[] { armyA, armyA2, armyB, armyC });
-
-            // エンジン構築
             engine = new SimulationEngine(world);
             engine.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
             engine.Register(new CommandExecutionSystem());
@@ -90,6 +52,9 @@ namespace BattleCoreStudio
             engine.Register(new LoyaltySystem());
             engine.Register(new RecruitmentSystem());
             engine.Register(new SupplySystem());
+            engine.Register(new RelationshipSystem());
+            engine.Register(new EventTriggerSystem(triggers));
+            engine.Register(new VictorySystem());
 
             UpdateUI();
         }
@@ -123,6 +88,41 @@ namespace BattleCoreStudio
             btnAuto.Enabled = true;
             btnStop.Enabled = false;
             btnStep.Enabled = true;
+        }
+
+        // -------------------------------------------------------
+        // 武将選択 → 関係値表示
+        // -------------------------------------------------------
+        private void lstArmies_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            var idx = lstArmies.SelectedIndex;
+            if (idx < 0) return;
+
+            var armies = world.Armies.OrderBy(a => a.ClanId).ToList();
+            if (idx >= armies.Count) return;
+
+            var army = armies[idx];
+            if (!army.OfficerId.HasValue) return;
+
+            var officer = world.Officers.FirstOrDefault(o => o.Id == army.OfficerId.Value);
+            if (officer == null) return;
+
+            var rels = world.Relationships
+                .Where(r => r.FromOfficerId == officer.Id)
+                .ToList();
+
+            lstEvents.Items.Insert(0, $"── {officer.Name} の関係値 ──");
+            if (!rels.Any())
+            {
+                lstEvents.Items.Insert(1, "  (関係なし)");
+                return;
+            }
+            foreach (var rel in rels)
+            {
+                var target = world.Officers.FirstOrDefault(o => o.Id == rel.ToOfficerId);
+                lstEvents.Items.Insert(1,
+                    $"  →{target?.Name ?? "?"}  T:{rel.Trust} R:{rel.Respect} D:{rel.Dislike}");
+            }
         }
 
         // -------------------------------------------------------
@@ -165,6 +165,21 @@ namespace BattleCoreStudio
                     var clan    = world.Clans.FirstOrDefault(c => c.Id == r.ToClanId);
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] {officer?.Name ?? "?"} が {clan?.Name ?? "?"} に仕官！");
+                }
+                else if (ev is ScenarioEvent se)
+                {
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] {se.Message}");
+                }
+                else if (ev is GameOverEvent go)
+                {
+                    autoTimer.Stop();
+                    btnAuto.Enabled = false;
+                    btnStop.Enabled = false;
+                    btnStep.Enabled = false;
+                    lstEvents.Items.Insert(0, $"[Tick{t.Tick}] 【ゲーム終了】{go.Reason}");
+                    MessageBox.Show(go.Reason, "ゲーム終了",
+                        MessageBoxButtons.OK, MessageBoxIcon.Information);
                 }
             }
 

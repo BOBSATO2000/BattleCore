@@ -41,5 +41,25 @@ namespace BattleCore.World
         /// <summary>IDで軍を検索する。CommandExecutionSystem から使用。</summary>
         public Army? GetArmyById(int id)
             => Armies.FirstOrDefault(a => a.Id == id);
+
+        /// <summary>
+        /// 2武将間の Relationship を取得する。存在しない場合は新規作成して追加する。
+        /// RelationshipSystem から使用。
+        /// </summary>
+        public Relationship GetOrCreateRelationship(int fromId, int toId)
+        {
+            var rel = Relationships.FirstOrDefault(
+                r => r.FromOfficerId == fromId && r.ToOfficerId == toId);
+
+            if (rel != null) return rel;
+
+            rel = new Relationship(
+                Relationships.Count + 1,
+                fromId,
+                toId);
+
+            Relationships.Add(rel);
+            return rel;
+        }
     }
 }
