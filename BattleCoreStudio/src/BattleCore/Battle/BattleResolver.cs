@@ -17,6 +17,7 @@ namespace BattleCore.Battle
 
         public const int TrustBonusThreshold = 60;
         private const double TrustBonusFactor = 0.95;
+        private const int GrowthCap = 200;
 
         public void Resolve(Battle battle, WorldState world)
         {
@@ -45,6 +46,17 @@ namespace BattleCore.Battle
 
             battle.Defender.LoseSoldiers(
                 battle.Defender == result.Winner ? winnerLosses : result.LoserLosses);
+
+            // 勝者Officerの成長：勝利毎に Leadership / Strategy を交互に+1（上限200）
+            var winner = result.Winner == battle.Attacker ? attackerOfficer : defenderOfficer;
+            if (winner != null)
+            {
+                winner.BattleWins++;
+                if (winner.BattleWins % 2 == 1)
+                    winner.Leadership = Math.Min(GrowthCap, winner.Leadership + 1);
+                else
+                    winner.Strategy   = Math.Min(GrowthCap, winner.Strategy   + 1);
+            }
         }
 
         private static Officer? GetOfficer(Army army, WorldState world)

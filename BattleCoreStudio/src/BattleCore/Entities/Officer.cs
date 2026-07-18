@@ -43,6 +43,9 @@ namespace BattleCore.Entities
         /// </summary>
         public int Courage { get; set; }
 
+        /// <summary>戦闘勝利回数。成長システムで使用する。</summary>
+        public int BattleWins { get; set; }
+
         public Officer(int id, string name) : base(id)
         {
             Name = name;
