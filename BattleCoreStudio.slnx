@@ -1,4 +1,5 @@
 <Solution>
+  <Project Path="BattleCore.Tests/BattleCore.Tests.csproj" Id="e5eef4cc-a1b2-419b-a760-72b3582dc539" />
   <Project Path="BattleCoreStudio/BattleCoreStudio.csproj" />
   <Project Path="BattleCoreStudio/src/BattleCore/BattleCore.csproj" />
 </Solution>
