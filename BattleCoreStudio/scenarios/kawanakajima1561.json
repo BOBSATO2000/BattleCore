@@ -1,0 +1,98 @@
+{
+  "title": "川中島の戦い 1561",
+  "startYear": 1561,
+  "map": [
+    { "id":  1, "q": 0, "r": 0, "terrain": "Mountain" },
+    { "id":  2, "q": 0, "r": 1, "terrain": "Mountain" },
+    { "id":  3, "q": 0, "r": 2, "terrain": "Mountain" },
+    { "id":  4, "q": 0, "r": 3, "terrain": "Mountain" },
+    { "id":  5, "q": 0, "r": 4, "terrain": "Mountain" },
+    { "id":  6, "q": 1, "r": 0, "terrain": "Forest"   },
+    { "id":  7, "q": 1, "r": 1, "terrain": "Forest"   },
+    { "id":  8, "q": 1, "r": 2, "terrain": "Forest"   },
+    { "id":  9, "q": 1, "r": 3, "terrain": "Forest"   },
+    { "id": 10, "q": 1, "r": 4, "terrain": "Forest"   },
+    { "id": 11, "q": 2, "r": 0, "terrain": "Plain"    },
+    { "id": 12, "q": 2, "r": 1, "terrain": "Plain"    },
+    { "id": 13, "q": 2, "r": 2, "terrain": "Plain"    },
+    { "id": 14, "q": 2, "r": 3, "terrain": "Plain"    },
+    { "id": 15, "q": 2, "r": 4, "terrain": "Plain"    },
+    { "id": 16, "q": 3, "r": 0, "terrain": "Forest"   },
+    { "id": 17, "q": 3, "r": 1, "terrain": "Forest"   },
+    { "id": 18, "q": 3, "r": 2, "terrain": "Forest"   },
+    { "id": 19, "q": 3, "r": 3, "terrain": "Forest"   },
+    { "id": 20, "q": 3, "r": 4, "terrain": "Forest"   },
+    { "id": 21, "q": 4, "r": 0, "terrain": "Mountain" },
+    { "id": 22, "q": 4, "r": 1, "terrain": "Mountain" },
+    { "id": 23, "q": 4, "r": 2, "terrain": "Mountain" },
+    { "id": 24, "q": 4, "r": 3, "terrain": "Mountain" },
+    { "id": 25, "q": 4, "r": 4, "terrain": "Mountain" }
+  ],
+  "clans": [
+    { "id": 1, "name": "上杉" },
+    { "id": 2, "name": "武田" }
+  ],
+  "officers": [
+    { "id": 1, "name": "謙信",  "leadership": 155, "strategy": 145, "courage": 170, "ambition": 20, "loyalty": 99, "intelligence": 130 },
+    { "id": 2, "name": "景勝",  "leadership": 120, "strategy": 110, "courage": 130, "ambition": 40, "loyalty": 90, "intelligence": 110 },
+    { "id": 3, "name": "直江",  "leadership": 110, "strategy": 140, "courage": 100, "ambition": 30, "loyalty": 95, "intelligence": 150 },
+    { "id": 4, "name": "信玄",  "leadership": 150, "strategy": 160, "courage": 120, "ambition": 60, "loyalty": 95, "intelligence": 155 },
+    { "id": 5, "name": "信繁",  "leadership": 130, "strategy": 120, "courage": 150, "ambition": 40, "loyalty": 99, "intelligence": 120 },
+    { "id": 6, "name": "山県",  "leadership": 140, "strategy": 130, "courage": 145, "ambition": 50, "loyalty": 95, "intelligence": 115 }
+  ],
+  "memberships": [
+    { "id": 1, "officerId": 1, "clanId": 1, "loyalty": 99 },
+    { "id": 2, "officerId": 2, "clanId": 1, "loyalty": 90 },
+    { "id": 3, "officerId": 3, "clanId": 1, "loyalty": 95 },
+    { "id": 4, "officerId": 4, "clanId": 2, "loyalty": 95 },
+    { "id": 5, "officerId": 5, "clanId": 2, "loyalty": 99 },
+    { "id": 6, "officerId": 6, "clanId": 2, "loyalty": 95 }
+  ],
+  "armies": [
+    { "id": 1, "clanId": 1, "currentHexId":  8, "soldiers": 1300, "officerId": 1 },
+    { "id": 2, "clanId": 1, "currentHexId":  6, "soldiers":  900, "officerId": 2 },
+    { "id": 3, "clanId": 1, "currentHexId": 10, "soldiers":  800, "officerId": 3 },
+    { "id": 4, "clanId": 2, "currentHexId": 18, "soldiers": 1400, "officerId": 4 },
+    { "id": 5, "clanId": 2, "currentHexId": 16, "soldiers": 1000, "officerId": 5 },
+    { "id": 6, "clanId": 2, "currentHexId": 20, "soldiers":  900, "officerId": 6 }
+  ],
+  "relationships": [
+    { "id": 1, "fromOfficerId": 1, "toOfficerId": 4, "trust": 0, "respect": 40, "dislike": 60 },
+    { "id": 2, "fromOfficerId": 4, "toOfficerId": 1, "trust": 0, "respect": 50, "dislike": 50 },
+    { "id": 3, "fromOfficerId": 5, "toOfficerId": 4, "trust": 80, "respect": 90, "dislike": 0 }
+  ],
+  "alliances": [],
+  "eventTriggers": [
+    {
+      "id": "kessen_start",
+      "minTick": 1,
+      "message": "【川中島の戦い 開幕】上杉謙信・武田信玄、宿命の対決が始まった！"
+    },
+    {
+      "id": "kenshin_charge",
+      "minTick": 3,
+      "officerId": 1,
+      "minDislike": 65,
+      "message": "【謙信、単騎突撃！】上杉謙信、信玄本陣へ馬を駆る！軍神の名、轟く！"
+    },
+    {
+      "id": "shingen_fan",
+      "minTick": 4,
+      "officerId": 4,
+      "minDislike": 60,
+      "message": "【信玄、軍配で受ける】武田信玄、謙信の太刀を軍配で三度受け止めたと伝わる！"
+    },
+    {
+      "id": "nobushige_fall",
+      "minTick": 5,
+      "officerId": 5,
+      "maxLoyalty": 95,
+      "message": "【信繁、奮戦！】武田信繁、兄・信玄を守り激戦の中で奮闘する！"
+    },
+    {
+      "id": "draw_end",
+      "minTick": 8,
+      "message": "【両軍、引き分けへ】川中島の戦いは決着つかず。両雄、再び相まみえることを誓う…"
+    }
+  ]
+}
