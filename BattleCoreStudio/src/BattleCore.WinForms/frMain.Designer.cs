@@ -16,6 +16,7 @@ namespace BattleCoreStudio
             btnStep       = new Button();
             btnAuto       = new Button();
             btnStop       = new Button();
+            btnRestart    = new Button();
             cmbSpeed      = new ComboBox();
             lblSpeed      = new Label();
             lblStatus     = new Label();
@@ -48,8 +49,15 @@ namespace BattleCoreStudio
             btnStop.Enabled  = false;
             btnStop.Click   += btnStop_Click;
 
+            // btnRestart
+            btnRestart.Location = new Point(276, 12);
+            btnRestart.Size     = new Size(90, 32);
+            btnRestart.Text     = "↺ もう一度";
+            btnRestart.Enabled  = false;
+            btnRestart.Click   += btnRestart_Click;
+
             // lblSpeed
-            lblSpeed.Location = new Point(280, 18);
+            lblSpeed.Location = new Point(378, 18);
             lblSpeed.Size     = new Size(36, 20);
             lblSpeed.Text     = "速度:";
 
@@ -111,7 +119,7 @@ namespace BattleCoreStudio
             Text       = "BattleCoreStudio";
             Controls.AddRange(new Control[]
             {
-                btnStep, btnAuto, btnStop, lblSpeed, cmbSpeed,
+                btnStep, btnAuto, btnStop, btnRestart, lblSpeed, cmbSpeed,
                 lblStatus,
                 pnlMap,
                 lblClans, pnlClans,
@@ -125,6 +133,7 @@ namespace BattleCoreStudio
         private Button   btnStep;
         private Button   btnAuto;
         private Button   btnStop;
+        private Button   btnRestart;
         private ComboBox cmbSpeed;
         private Label    lblSpeed;
         private Label    lblStatus;

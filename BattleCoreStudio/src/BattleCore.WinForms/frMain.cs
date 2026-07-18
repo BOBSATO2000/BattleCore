@@ -91,6 +91,17 @@ namespace BattleCoreStudio
             btnStep.Enabled = true;
         }
 
+        private void btnRestart_Click(object sender, EventArgs e)
+        {
+            autoTimer.Stop();
+            lstEvents.Items.Clear();
+            btnRestart.Enabled = false;
+            btnStep.Enabled    = true;
+            btnAuto.Enabled    = true;
+            btnStop.Enabled    = false;
+            InitSimulation();
+        }
+
         // -------------------------------------------------------
         // 武将選択 → 関係値表示
         // -------------------------------------------------------
@@ -201,9 +212,10 @@ namespace BattleCoreStudio
                 else if (ev is GameOverEvent go)
                 {
                     autoTimer.Stop();
-                    btnAuto.Enabled = false;
-                    btnStop.Enabled = false;
-                    btnStep.Enabled = false;
+                    btnAuto.Enabled    = false;
+                    btnStop.Enabled    = false;
+                    btnStep.Enabled    = false;
+                    btnRestart.Enabled = true;
                     lstEvents.Items.Insert(0, $"[Tick{t.Tick}] 【ゲーム終了】{go.Reason}");
                     MessageBox.Show(go.Reason, "ゲーム終了",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
