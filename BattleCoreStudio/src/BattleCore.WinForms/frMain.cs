@@ -304,56 +304,115 @@ namespace BattleCoreStudio
                     Brushes.White, center.X - 6, center.Y - 6);
             }
 
-            // 軍隊描画（兵力0は描画しない）
-            foreach (var army in world.Armies.Where(a => a.Soldiers > 0))
+            // 移動先矢印（DestinationHexId がある軍）
+            var arrowPen = new Pen(Color.FromArgb(200, 255, 255, 100), 1.5f)
             {
-                var hex = world.Map.GetHexById(army.CurrentHexId);
+                CustomEndCap = new System.Drawing.Drawing2D.AdjustableArrowCap(4, 4)
+            };
+            foreach (var army in world.Armies.Where(a => a.Soldiers > 0 && a.DestinationHexId != null))
+            {
+                var fromHex = world.Map.GetHexById(army.CurrentHexId);
+                var toHex   = world.Map.GetHexById(army.DestinationHexId!.Value);
+                if (fromHex == null || toHex == null) continue;
+                var from = HexToPixel(fromHex.X, fromHex.Y);
+                var to   = HexToPixel(toHex.X,   toHex.Y);
+                g.DrawLine(arrowPen, from, to);
+            }
+
+            // 軍隊描画（同Hexに複数いる場合はオフセット）
+            var armiesByHex = world.Armies
+                .Where(a => a.Soldiers > 0)
+                .GroupBy(a => a.CurrentHexId);
+
+            foreach (var group in armiesByHex)
+            {
+                var hex = world.Map.GetHexById(group.Key);
                 if (hex == null) continue;
+                var baseCenter = HexToPixel(hex.X, hex.Y);
 
-                var center  = HexToPixel(hex.X, hex.Y);
-                var clan    = world.Clans.FirstOrDefault(c => c.Id == army.ClanId);
-                var officer = army.OfficerId.HasValue
-                    ? world.Officers.FirstOrDefault(o => o.Id == army.OfficerId)
-                    : null;
-
-                // 勢力色
-                var color = army.ClanId switch
+                var list = group.ToList();
+                for (int i = 0; i < list.Count; i++)
                 {
-                    1 => Color.FromArgb(220, 80,  80),   // 織田: 赤
-                    2 => Color.FromArgb(80,  80,  220),  // 武田: 青
-                    3 => Color.FromArgb(80,  180, 80),   // 上杉: 緑
-                    _ => Color.Gray,                     // 無所属
-                };
+                    var army    = list[i];
+                    var clan    = world.Clans.FirstOrDefault(c => c.Id == army.ClanId);
+                    var officer = army.OfficerId.HasValue
+                        ? world.Officers.FirstOrDefault(o => o.Id == army.OfficerId)
+                        : null;
 
-                // 駒の円
-                g.FillEllipse(new SolidBrush(color),
-                    center.X - 14, center.Y - 14, 28, 28);
-                g.DrawEllipse(new Pen(Color.White, 1f),
-                    center.X - 14, center.Y - 14, 28, 28);
+                    // 複数駒のオフセット（最大4つ想定）
+                    PointF center = list.Count == 1 ? baseCenter : i switch
+                    {
+                        0 => new PointF(baseCenter.X - 10, baseCenter.Y - 8),
+                        1 => new PointF(baseCenter.X + 10, baseCenter.Y - 8),
+                        2 => new PointF(baseCenter.X - 10, baseCenter.Y + 8),
+                        _ => new PointF(baseCenter.X + 10, baseCenter.Y + 8),
+                    };
 
-                // 武将名
-                var officerName = officer?.Name ?? "?";
-                var nameSize    = g.MeasureString(officerName, new Font("MS Gothic", 8f));
-                g.DrawString(officerName, new Font("MS Gothic", 8f),
-                    Brushes.White,
-                    center.X - nameSize.Width / 2,
-                    center.Y - nameSize.Height / 2);
+                    // 勢力色
+                    var color = army.ClanId switch
+                    {
+                        1 => Color.FromArgb(220, 80,  80),
+                        2 => Color.FromArgb(80,  80,  220),
+                        3 => Color.FromArgb(80,  180, 80),
+                        4 => Color.FromArgb(200, 160, 40),
+                        _ => Color.Gray,
+                    };
 
-                // 兵力バー
-                const int barW = 28;
-                const int barH = 4;
-                float barX = center.X - barW / 2;
-                float barY = center.Y + 16;
-                float fill = Math.Clamp(army.Soldiers / 1000f, 0f, 1f);
+                    // 駒の円
+                    g.FillEllipse(new SolidBrush(color),
+                        center.X - 14, center.Y - 14, 28, 28);
+                    g.DrawEllipse(new Pen(Color.White, 1f),
+                        center.X - 14, center.Y - 14, 28, 28);
 
-                g.FillRectangle(Brushes.DarkGray,  barX, barY, barW, barH);
-                g.FillRectangle(new SolidBrush(color), barX, barY, barW * fill, barH);
-                g.DrawRectangle(new Pen(Color.White, 0.5f), barX, barY, barW, barH);
+                    // 武将名
+                    var officerName = officer?.Name ?? "?";
+                    var nameFont    = new Font("MS Gothic", 8f);
+                    var nameSize    = g.MeasureString(officerName, nameFont);
+                    g.DrawString(officerName, nameFont, Brushes.White,
+                        center.X - nameSize.Width / 2,
+                        center.Y - nameSize.Height / 2);
 
-                // 兵力数
-                g.DrawString(army.Soldiers.ToString(),
-                    new Font("Arial", 7f), Brushes.White,
-                    center.X - 12, center.Y + 21);
+                    // 兵力バー
+                    const int barW = 28;
+                    const int barH = 4;
+                    float barX = center.X - barW / 2;
+                    float barY = center.Y + 16;
+                    int   maxSoldiers = Math.Max(army.Soldiers, 1000);
+                    float fill = Math.Clamp(army.Soldiers / (float)maxSoldiers, 0f, 1f);
+
+                    g.FillRectangle(Brushes.DarkGray, barX, barY, barW, barH);
+                    g.FillRectangle(new SolidBrush(color), barX, barY, barW * fill, barH);
+                    g.DrawRectangle(new Pen(Color.White, 0.5f), barX, barY, barW, barH);
+
+                    // 兵力数
+                    g.DrawString(army.Soldiers.ToString(),
+                        new Font("Arial", 7f), Brushes.White,
+                        center.X - 12, center.Y + 21);
+                }
+            }
+
+            // 凡例
+            DrawLegend(g);
+        }
+
+        // -------------------------------------------------------
+        // 凡例描画
+        // -------------------------------------------------------
+        private static void DrawLegend(Graphics g)
+        {
+            var items = new[]
+            {
+                (Color.FromArgb(80,  120,  80), "平地"),
+                (Color.FromArgb(40,  100,  60), "森 (移動+1Tick)"),
+                (Color.FromArgb(100, 100, 120), "山 (移動不可)"),
+            };
+            float lx = 8, ly = 8;
+            foreach (var (color, label) in items)
+            {
+                g.FillRectangle(new SolidBrush(color), lx, ly, 12, 12);
+                g.DrawRectangle(new Pen(Color.Gray, 0.5f), lx, ly, 12, 12);
+                g.DrawString(label, new Font("MS Gothic", 7.5f), Brushes.White, lx + 15, ly);
+                ly += 16;
             }
         }
 
