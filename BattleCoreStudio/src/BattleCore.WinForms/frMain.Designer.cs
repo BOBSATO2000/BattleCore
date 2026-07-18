@@ -103,6 +103,7 @@ namespace BattleCoreStudio
             lstArmies.Size             = new Size(200, 160);
             lstArmies.Font             = new Font("MS Gothic", 9f);
             lstArmies.SelectedIndexChanged += lstArmies_SelectedIndexChanged;
+            lstArmies.DoubleClick          += lstArmies_DoubleClick;
 
             // lblEvents
             lblEvents.Location = new Point(584, 384);

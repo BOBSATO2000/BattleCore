@@ -138,6 +138,47 @@ namespace BattleCoreStudio
         }
 
         // -------------------------------------------------------
+        // 武将ダブルクリック → 詳細ポップアップ
+        // -------------------------------------------------------
+        private void lstArmies_DoubleClick(object sender, EventArgs e)
+        {
+            var idx = lstArmies.SelectedIndex;
+            if (idx < 0) return;
+
+            var armies = world.Armies.OrderBy(a => a.ClanId).ToList();
+            if (idx >= armies.Count) return;
+
+            var army    = armies[idx];
+            var officer = army.OfficerId.HasValue
+                ? world.Officers.FirstOrDefault(o => o.Id == army.OfficerId.Value)
+                : null;
+            var clan = world.Clans.FirstOrDefault(c => c.Id == army.ClanId);
+            if (officer == null) return;
+
+            var rels = world.Relationships
+                .Where(r => r.FromOfficerId == officer.Id)
+                .Select(r =>
+                {
+                    var t = world.Officers.FirstOrDefault(o => o.Id == r.ToOfficerId);
+                    return $"  →{t?.Name ?? "?"}  信頼:{r.Trust} 尊敬:{r.Respect} 反感:{r.Dislike}";
+                }).ToList();
+
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine($"【{clan?.Name ?? "無所属"}】{officer.Name}");
+            sb.AppendLine();
+            sb.AppendLine($"統率:{officer.Leadership,3}  戦術:{officer.Strategy,3}  武勇:{officer.Courage,3}");
+            sb.AppendLine($"知略:{officer.Intelligence,3}  野心:{officer.Ambition,3}  忠誠:{officer.Loyalty,3}");
+            sb.AppendLine();
+            sb.AppendLine($"兵力: {army.Soldiers} / 1000");
+            sb.AppendLine();
+            sb.AppendLine(rels.Any() ? "関係値:" : "関係値: なし");
+            rels.ForEach(l => sb.AppendLine(l));
+
+            MessageBox.Show(sb.ToString(), $"{officer.Name} の詳細",
+                MessageBoxButtons.OK, MessageBoxIcon.None);
+        }
+
+        // -------------------------------------------------------
         // UI更新
         // -------------------------------------------------------
         private void UpdateUI()
