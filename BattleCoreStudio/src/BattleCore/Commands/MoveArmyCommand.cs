@@ -12,6 +12,8 @@ namespace BattleCore.Commands
         private readonly int armyId;
         private readonly int destinationHexId;
 
+        public int ArmyId           => armyId;
+        public int DestinationHexId => destinationHexId;
         public MoveArmyCommand(int armyId, int destinationHexId)
         {
             this.armyId = armyId;

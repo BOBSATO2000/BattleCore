@@ -10,14 +10,13 @@ namespace BattleCore.AI
 {
     /// <summary>
     /// 積極攻撃戦略。
-    /// 兵力が十分な軍は最も近い敵へ進軍する。
-    /// 兵力が RetreathThreshold 以下の軍は敵から最も遠いHexへ撤退する。
+    /// 敵城が敵軍より近い場合は城を優先して攻略する。
+    /// 兵力が RetreatThreshold 以下の軍は自勢力の城へ撤退する（城がなければ最遠Hexへ）。
     /// </summary>
     public class AggressiveClanStrategy : IClanStrategy
     {
         private readonly IPathFinder pathFinder = new HexPathFinder();
 
-        /// <summary>この兵力以下になった軍は撤退する。</summary>
         public int RetreatThreshold { get; }
 
         public AggressiveClanStrategy(int retreatThreshold = 300)
@@ -27,12 +26,10 @@ namespace BattleCore.AI
 
         public IEnumerable<ICommand> Decide(Clan clan, WorldState world)
         {
-            // この勢力の全 Army を取得（兵力0は除外）
             var myArmies = world.Armies
                 .Where(a => a.ClanId == clan.Id && a.Soldiers > 0)
                 .ToList();
 
-            // 敵 Army を取得（兵力0は除外・同盟中は除外）
             var enemyArmies = world.Armies
                 .Where(a => a.ClanId != clan.Id
                          && a.Soldiers > 0
@@ -42,54 +39,95 @@ namespace BattleCore.AI
             if (!enemyArmies.Any())
                 yield break;
 
+            var enemyCastles = world.Castles
+                .Where(c => c.OwnerClanId != clan.Id)
+                .ToList();
+
+            var myCastles = world.Castles
+                .Where(c => c.OwnerClanId == clan.Id)
+                .ToList();
+
             foreach (var army in myArmies)
             {
-                // 同じ Hex に敵がいる場合は待機（BattleSystem が処理する）
+                var currentHex = world.Map.GetHexById(army.CurrentHexId);
+                if (currentHex == null) continue;
+
                 if (enemyArmies.Any(e => e.CurrentHexId == army.CurrentHexId))
                     continue;
 
-                // 兵力が閾値以下 → 敵から最も遠いHexへ撤退
+                // 撤退：自勢力の城へ、なければ最遠Hexへ
                 if (army.Soldiers <= RetreatThreshold)
                 {
-                    var retreatHex = world.Map.Hexes
-                        .Where(h => h.Terrain != Map.TerrainType.Mountain)
-                        .Select(h => new
-                        {
-                            HexId   = h.Id,
-                            MinDist = enemyArmies.Min(e =>
-                                HexDistance.Calculate(
-                                    world.Map.GetHexById(army.CurrentHexId)!,
-                                    world.Map.GetHexById(e.CurrentHexId)!))
-                        })
-                        .OrderByDescending(x => x.MinDist)
-                        .FirstOrDefault();
-
-                    if (retreatHex != null && retreatHex.HexId != army.CurrentHexId)
-                        yield return new MoveArmyCommand(army.Id, retreatHex.HexId);
+                    var target = GetRetreatTarget(army, currentHex, myCastles, enemyArmies, world);
+                    if (target != null && target != army.CurrentHexId)
+                        yield return new MoveArmyCommand(army.Id, target.Value);
                     continue;
                 }
 
-                // 最も近い敵を PathFinder で探す
-                var nearest = enemyArmies
-                    .Select(e => new
+                // 敵城への距離
+                var nearestCastle = enemyCastles
+                    .Select(c => new
                     {
-                        Enemy = e,
-                        Path = pathFinder.FindPath(
-                            world.Map,
-                            army.CurrentHexId,
-                            e.CurrentHexId)
+                        c.HexId,
+                        Dist = HexDistance.Calculate(currentHex, world.Map.GetHexById(c.HexId)!)
                     })
-                    .Where(x => x.Path.Count > 1)
-                    .OrderBy(x => x.Path.Count)
+                    .OrderBy(x => x.Dist)
                     .FirstOrDefault();
 
-                if (nearest == null)
+                // 最近敵軍への距離
+                var nearestEnemy = enemyArmies
+                    .Select(e => new
+                    {
+                        e.CurrentHexId,
+                        Dist = HexDistance.Calculate(currentHex, world.Map.GetHexById(e.CurrentHexId)!)
+                    })
+                    .OrderBy(x => x.Dist)
+                    .FirstOrDefault();
+
+                // 敵城が敵軍より近い（×0.8）場合は城を優先
+                int targetHexId;
+                if (nearestCastle != null && nearestEnemy != null
+                    && nearestCastle.Dist <= nearestEnemy.Dist * 0.8)
+                    targetHexId = nearestCastle.HexId;
+                else if (nearestEnemy != null)
+                    targetHexId = nearestEnemy.CurrentHexId;
+                else
                     continue;
 
-                // 経路の次の Hex へ移動命令を発行
-                var nextHexId = nearest.Path[1];
-                yield return new MoveArmyCommand(army.Id, nextHexId);
+                var path = pathFinder.FindPath(world.Map, army.CurrentHexId, targetHexId);
+                if (path.Count > 1)
+                    yield return new MoveArmyCommand(army.Id, path[1]);
             }
+        }
+
+        private int? GetRetreatTarget(
+            Army army, Hex currentHex,
+            List<Castle> myCastles,
+            List<Army> enemyArmies,
+            WorldState world)
+        {
+            // 自勢力の城があれば最近の城へ
+            if (myCastles.Any())
+            {
+                var nearest = myCastles
+                    .Select(c => new
+                    {
+                        c.HexId,
+                        Dist = HexDistance.Calculate(currentHex, world.Map.GetHexById(c.HexId)!)
+                    })
+                    .OrderBy(x => x.Dist)
+                    .First();
+                if (nearest.HexId != army.CurrentHexId)
+                    return nearest.HexId;
+            }
+
+            // 城がなければ敵から最遠のHexへ
+            return world.Map.Hexes
+                .Where(h => h.Terrain != TerrainType.Mountain)
+                .OrderByDescending(h =>
+                    enemyArmies.Min(e =>
+                        HexDistance.Calculate(h, world.Map.GetHexById(e.CurrentHexId)!)))
+                .FirstOrDefault()?.Id;
         }
     }
 }
