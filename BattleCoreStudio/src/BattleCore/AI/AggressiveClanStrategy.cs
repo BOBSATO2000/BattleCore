@@ -1,5 +1,6 @@
 using BattleCore.Commands;
 using BattleCore.Entities;
+using BattleCore.Map;
 using BattleCore.Navigation;
 using BattleCore.World;
 using System.Collections.Generic;
@@ -9,17 +10,20 @@ namespace BattleCore.AI
 {
     /// <summary>
     /// 積極攻撃戦略。
-    /// 勢力が保有する全 Army を、最も近い敵 Army へ向かわせる。
-    /// 
-    /// ルール：
-    ///   1. この Clan に所属する全 Army を取得する
-    ///   2. 各 Army に対して最も近い敵 Army を PathFinder で探す
-    ///   3. 敵への経路の次の Hex へ MoveArmyCommand を発行する
-    ///   4. 同じ Hex に敵がいる場合は移動しない（BattleSystem に任せる）
+    /// 兵力が十分な軍は最も近い敵へ進軍する。
+    /// 兵力が RetreathThreshold 以下の軍は敵から最も遠いHexへ撤退する。
     /// </summary>
     public class AggressiveClanStrategy : IClanStrategy
     {
         private readonly IPathFinder pathFinder = new HexPathFinder();
+
+        /// <summary>この兵力以下になった軍は撤退する。</summary>
+        public int RetreatThreshold { get; }
+
+        public AggressiveClanStrategy(int retreatThreshold = 300)
+        {
+            RetreatThreshold = retreatThreshold;
+        }
 
         public IEnumerable<ICommand> Decide(Clan clan, WorldState world)
         {
@@ -41,6 +45,27 @@ namespace BattleCore.AI
                 // 同じ Hex に敵がいる場合は待機（BattleSystem が処理する）
                 if (enemyArmies.Any(e => e.CurrentHexId == army.CurrentHexId))
                     continue;
+
+                // 兵力が閾値以下 → 敵から最も遠いHexへ撤退
+                if (army.Soldiers <= RetreatThreshold)
+                {
+                    var retreatHex = world.Map.Hexes
+                        .Where(h => h.Terrain != Map.TerrainType.Mountain)
+                        .Select(h => new
+                        {
+                            HexId   = h.Id,
+                            MinDist = enemyArmies.Min(e =>
+                                HexDistance.Calculate(
+                                    world.Map.GetHexById(army.CurrentHexId)!,
+                                    world.Map.GetHexById(e.CurrentHexId)!))
+                        })
+                        .OrderByDescending(x => x.MinDist)
+                        .FirstOrDefault();
+
+                    if (retreatHex != null && retreatHex.HexId != army.CurrentHexId)
+                        yield return new MoveArmyCommand(army.Id, retreatHex.HexId);
+                    continue;
+                }
 
                 // 最も近い敵を PathFinder で探す
                 var nearest = enemyArmies

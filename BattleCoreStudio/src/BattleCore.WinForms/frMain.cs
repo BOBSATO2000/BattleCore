@@ -133,6 +133,32 @@ namespace BattleCoreStudio
             var t = engine.Context.Time;
             lblStatus.Text = $"Tick: {t.Tick}  Year: {t.Year}  {SeasonName(t.Season)}";
 
+            // 勢力概要パネル
+            pnlClans.Controls.Clear();
+            int py = 4;
+            foreach (var clan in world.Clans)
+            {
+                var armies      = world.Armies.Where(a => a.ClanId == clan.Id).ToList();
+                var totalSoldiers = armies.Sum(a => a.Soldiers);
+                var activeArmies  = armies.Count(a => a.Soldiers > 0);
+                var color = clan.Id switch
+                {
+                    1 => Color.FromArgb(220, 80,  80),
+                    2 => Color.FromArgb(80,  80,  220),
+                    3 => Color.FromArgb(80,  180, 80),
+                    _ => Color.Gray,
+                };
+                var lbl = new Label
+                {
+                    Text      = $"■ {clan.Name}  兵:{totalSoldiers:#,0}  軍:{activeArmies}",
+                    ForeColor = color,
+                    Location  = new Point(4, py),
+                    Size      = new Size(190, 20),
+                    Font      = new Font("MS Gothic", 9f),
+                };
+                pnlClans.Controls.Add(lbl);
+                py += 22;
+            }
             // 軍隊リスト（兵力0は[全滅]と表示）
             lstArmies.Items.Clear();
             foreach (var army in world.Armies.OrderBy(a => a.ClanId))
