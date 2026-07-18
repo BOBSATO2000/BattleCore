@@ -32,9 +32,11 @@ namespace BattleCore.AI
                 .Where(a => a.ClanId == clan.Id && a.Soldiers > 0)
                 .ToList();
 
-            // 敵 Army を取得（兵力0は除外）
+            // 敵 Army を取得（兵力0は除外・同盟中は除外）
             var enemyArmies = world.Armies
-                .Where(a => a.ClanId != clan.Id && a.Soldiers > 0)
+                .Where(a => a.ClanId != clan.Id
+                         && a.Soldiers > 0
+                         && !world.AreAllied(clan.Id, a.ClanId))
                 .ToList();
 
             if (!enemyArmies.Any())

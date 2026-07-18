@@ -29,6 +29,9 @@ namespace BattleCore.World
         /// <summary>世界に存在する全軍隊。BattleSystem / MovementSystem が参照する。</summary>
         public List<Army> Armies { get; } = new();
 
+        /// <summary>勢力間の同盟リスト。DiplomacySystem が管理する。</summary>
+        public List<Alliance> Alliances { get; } = new();
+
         /// <summary>ヘックスマップ。地理ルールを管理する。</summary>
         public GameMap Map { get; } = new();
 
@@ -41,6 +44,12 @@ namespace BattleCore.World
         /// <summary>IDで軍を検索する。CommandExecutionSystem から使用。</summary>
         public Army? GetArmyById(int id)
             => Armies.FirstOrDefault(a => a.Id == id);
+
+        /// <summary>2勢力が同盟中かどうかを返す。</summary>
+        public bool AreAllied(int clanId1, int clanId2)
+            => Alliances.Any(a =>
+                (a.ClanId1 == clanId1 && a.ClanId2 == clanId2) ||
+                (a.ClanId1 == clanId2 && a.ClanId2 == clanId1));
 
         /// <summary>
         /// 2武将間の Relationship を取得する。存在しない場合は新規作成して追加する。

@@ -27,7 +27,8 @@ namespace BattleCore.Battle
                 {
                     for (int j = i + 1; j < armies.Count; j++)
                     {
-                        if (armies[i].ClanId != armies[j].ClanId)
+                        if (armies[i].ClanId != armies[j].ClanId
+                            && !world.AreAllied(armies[i].ClanId, armies[j].ClanId))
                             result.Add(new Battle(armies[i], armies[j]));
                     }
                 }

@@ -53,6 +53,7 @@ namespace BattleCoreStudio
             engine.Register(new RecruitmentSystem());
             engine.Register(new SupplySystem());
             engine.Register(new RelationshipSystem());
+            engine.Register(new DiplomacySystem());
             engine.Register(new EventTriggerSystem(triggers));
             engine.Register(new VictorySystem());
 
