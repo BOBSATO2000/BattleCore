@@ -23,7 +23,10 @@ namespace BattleCore.Systems.Battle
         public void Update(SimulationContext context)
         {
             foreach (var battle in finder.Find(context.World))
-                resolver.Resolve(battle, context.World);
+            {
+                var log = resolver.Resolve(battle, context.World);
+                context.EventQueue.Enqueue(log);
+            }
         }
     }
 }

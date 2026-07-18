@@ -1,5 +1,7 @@
 using BattleCore.Entities;
+using BattleCore.Events;
 using BattleCore.Map;
+using BattleCore.Simulation;
 using BattleCore.Systems.Battle;
 using BattleCore.World;
 using System;
@@ -7,11 +9,6 @@ using System.Linq;
 
 namespace BattleCore.Battle
 {
-    /// <summary>
-    /// 1件の戦闘を解決し、兵力を更新する。
-    /// Officer が配属されている場合は Leadership / Strategy / Courage を DamageCalculator へ渡す。
-    /// 攻撃側・防御側のOfficer間のTrustが高い場合（>=60）、勝者損害を5%軽減する。
-    /// </summary>
     public class BattleResolver
     {
         private readonly DamageCalculator calculator = new();
@@ -20,12 +17,12 @@ namespace BattleCore.Battle
         private const double TrustBonusFactor = 0.95;
         private const int GrowthCap = 200;
 
-        public void Resolve(Battle battle, WorldState world)
+        public BattleLogEvent Resolve(Battle battle, WorldState world)
         {
             var attackerOfficer = GetOfficer(battle.Attacker, world);
             var defenderOfficer = GetOfficer(battle.Defender, world);
 
-            var defenderHex = world.Map.GetHexById(battle.Defender.CurrentHexId);
+            var defenderHex     = world.Map.GetHexById(battle.Defender.CurrentHexId);
             var defenderTerrain = defenderHex?.Terrain ?? TerrainType.Plain;
 
             var result = calculator.Calculate(
@@ -49,20 +46,45 @@ namespace BattleCore.Battle
 
             battle.Attacker.LoseSoldiers(
                 battle.Attacker == result.Winner ? winnerLosses : result.LoserLosses);
-
             battle.Defender.LoseSoldiers(
                 battle.Defender == result.Winner ? winnerLosses : result.LoserLosses);
 
-            // 勝者Officerの成長：勝利毎に Leadership / Strategy を交互に+1（上限200）
-            var winner = result.Winner == battle.Attacker ? attackerOfficer : defenderOfficer;
-            if (winner != null)
+            // 勝者Officerの成長
+            string? growthDetail = null;
+            var winnerOff = result.Winner == battle.Attacker ? attackerOfficer : defenderOfficer;
+            if (winnerOff != null)
             {
-                winner.BattleWins++;
-                if (winner.BattleWins % 2 == 1)
-                    winner.Leadership = Math.Min(GrowthCap, winner.Leadership + 1);
+                winnerOff.BattleWins++;
+                if (winnerOff.BattleWins % 2 == 1)
+                {
+                    winnerOff.Leadership = Math.Min(GrowthCap, winnerOff.Leadership + 1);
+                    growthDetail = $"{winnerOff.Name} 統率+1({winnerOff.Leadership})";
+                }
                 else
-                    winner.Strategy   = Math.Min(GrowthCap, winner.Strategy   + 1);
+                {
+                    winnerOff.Strategy = Math.Min(GrowthCap, winnerOff.Strategy + 1);
+                    growthDetail = $"{winnerOff.Name} 戦術+1({winnerOff.Strategy})";
+                }
             }
+
+            var winnerName = (result.Winner == battle.Attacker ? attackerOfficer : defenderOfficer)?.Name
+                             ?? (result.Winner == battle.Attacker
+                                 ? world.Clans.FirstOrDefault(c => c.Id == battle.Attacker.ClanId)?.Name
+                                 : world.Clans.FirstOrDefault(c => c.Id == battle.Defender.ClanId)?.Name)
+                             ?? "?";
+            var loserName  = (result.Loser  == battle.Attacker ? attackerOfficer : defenderOfficer)?.Name
+                             ?? (result.Loser == battle.Attacker
+                                 ? world.Clans.FirstOrDefault(c => c.Id == battle.Attacker.ClanId)?.Name
+                                 : world.Clans.FirstOrDefault(c => c.Id == battle.Defender.ClanId)?.Name)
+                             ?? "?";
+
+            return new BattleLogEvent(
+                winnerName, loserName,
+                winnerLosses, result.LoserLosses,
+                defenderTerrain, world.Weather,
+                terrainBonus: defenderTerrain != TerrainType.Plain,
+                rainPenalty:  world.Weather == Weather.Rain,
+                growthDetail);
         }
 
         private static Officer? GetOfficer(Army army, WorldState world)

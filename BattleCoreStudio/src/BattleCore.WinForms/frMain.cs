@@ -246,7 +246,17 @@ namespace BattleCoreStudio
             while (engine.Context.EventQueue.Count > 0)
             {
                 var ev = engine.Context.EventQueue.Dequeue();
-                if (ev is BetrayalEvent b)
+                if (ev is BattleLogEvent bl)
+                {
+                    var terrainTag = bl.TerrainBonus
+                        ? bl.Terrain == TerrainType.Forest ? "[森-20%]" : "[山-30%]"
+                        : "";
+                    var weatherTag = bl.RainPenalty ? "[雨-10%]" : "";
+                    var growthTag  = bl.GrowthDetail != null ? $" ★{bl.GrowthDetail}" : "";
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] {bl.WinnerName}勝 損:{bl.WinnerLosses} / {bl.LoserName}敗 損:{bl.LoserLosses}{terrainTag}{weatherTag}{growthTag}");
+                }
+                else if (ev is BetrayalEvent b)
                 {
                     var officer = world.Officers.FirstOrDefault(o => o.Id == b.OfficerId);
                     var clan    = world.Clans.FirstOrDefault(c => c.Id == b.FromClanId);
