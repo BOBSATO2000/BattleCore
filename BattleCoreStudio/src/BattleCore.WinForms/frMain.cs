@@ -89,6 +89,7 @@ namespace BattleCoreStudio
             engine.Register(new BattleSystem());
             engine.Register(new LoyaltySystem());
             engine.Register(new RecruitmentSystem());
+            engine.Register(new SupplySystem());
 
             UpdateUI();
         }

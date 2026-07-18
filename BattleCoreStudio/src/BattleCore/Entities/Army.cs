@@ -76,6 +76,17 @@ namespace BattleCore.Entities
         public void AssignOfficer(int officerId) => OfficerId = officerId;
 
         /// <summary>
+        /// 兵力を補充する。MaxSoldiersを超えない範囲で増加する。
+        /// SupplySystem から呼ばれる。
+        /// </summary>
+        public void Reinforce(int amount)
+        {
+            if (amount < 0)
+                throw new ArgumentOutOfRangeException(nameof(amount));
+            Soldiers += amount;
+        }
+
+        /// <summary>
         /// 軍が離反し、新しい勢力へ移る。
         /// LoyaltySystem が武将の離反処理の一環として呼び出す。
         /// </summary>
