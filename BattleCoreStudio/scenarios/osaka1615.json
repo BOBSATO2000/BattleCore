@@ -61,6 +61,13 @@
     { "id": 2, "fromOfficerId": 2, "toOfficerId": 1, "trust": 30, "respect": 60, "dislike": 0 }
   ],
   "alliances": [],
+  "castles": [
+    { "id": 1, "name": "大坂城",     "hexId": 12, "ownerClanId": 1, "reinforcementPerTick": 80 },
+    { "id": 2, "name": "山里の陣",   "hexId":  8, "ownerClanId": 1, "reinforcementPerTick": 40 },
+    { "id": 3, "name": "山里の陣南", "hexId": 14, "ownerClanId": 1, "reinforcementPerTick": 40 },
+    { "id": 4, "name": "徳川本陣",   "hexId":  1, "ownerClanId": 2, "reinforcementPerTick": 60 },
+    { "id": 5, "name": "徳川南陣",   "hexId": 21, "ownerClanId": 2, "reinforcementPerTick": 60 }
+  ],
   "eventTriggers": [
     {
       "id": "natsu_no_jin",

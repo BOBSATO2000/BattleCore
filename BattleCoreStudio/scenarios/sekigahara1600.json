@@ -58,6 +58,13 @@
     { "id": 2, "fromOfficerId": 3, "toOfficerId": 1, "trust": 0, "respect": 0, "dislike": 70 }
   ],
   "alliances": [],
+  "castles": [
+    { "id": 1, "name": "徳川本陣",   "hexId":  7, "ownerClanId": 1, "reinforcementPerTick": 70 },
+    { "id": 2, "name": "徳川山陣",   "hexId":  6, "ownerClanId": 1, "reinforcementPerTick": 50 },
+    { "id": 3, "name": "関ヶ原要衝", "hexId": 13, "ownerClanId": 0, "reinforcementPerTick": 60 },
+    { "id": 4, "name": "西軍本陣",   "hexId": 22, "ownerClanId": 2, "reinforcementPerTick": 70 },
+    { "id": 5, "name": "山城",       "hexId": 24, "ownerClanId": 2, "reinforcementPerTick": 50 }
+  ],
   "eventTriggers": [
     {
       "id": "sekigahara_start",
