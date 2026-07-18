@@ -72,6 +72,12 @@ namespace BattleCore.Entities
         /// <summary>移動目標をクリアして待機状態にする。</summary>
         public void ClearDestination() => DestinationHexId = null;
 
+        /// <summary>
+        /// 移動クールダウン。Forest進入時に1がセットされ、次Tickは移動スキップ。
+        /// MovementSystem が毎Tick1ずつ減らす。
+        /// </summary>
+        public int MoveCooldown { get; set; } = 0;
+
         /// <summary>指揮官（Officer）を配属する。</summary>
         public void AssignOfficer(int officerId) => OfficerId = officerId;
 

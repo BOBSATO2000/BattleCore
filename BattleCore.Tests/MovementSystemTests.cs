@@ -203,4 +203,59 @@ public class MovementSystemTests
             plain.Id,
             army.CurrentHexId);
     }
+
+    [TestMethod]
+    public void ForestEntryCostsCooldown()
+    {
+        // Plain -> Forest -> Plain の3Hex
+        var world = new WorldState();
+        var plain1  = new Hex(1, 0, 0, TerrainType.Plain);
+        var forest  = new Hex(2, 1, 0, TerrainType.Forest);
+        var plain2  = new Hex(3, 2, 0, TerrainType.Plain);
+        world.Map.AddHex(plain1);
+        world.Map.AddHex(forest);
+        world.Map.AddHex(plain2);
+
+        var army = new Army(1, 1, 1, plain1.Id);
+        world.Armies.Add(army);
+        army.OrderMove(plain2.Id);
+
+        var engine = new SimulationEngine(world);
+        engine.RegisterSystem(new MovementSystem());
+
+        // Tick1: plain1 -> forest（クールダウン1セット）
+        engine.Step();
+        Assert.AreEqual(forest.Id, army.CurrentHexId);
+        Assert.AreEqual(1, army.MoveCooldown);
+
+        // Tick2: クールダウン消費、forest に留まる
+        engine.Step();
+        Assert.AreEqual(forest.Id, army.CurrentHexId);
+        Assert.AreEqual(0, army.MoveCooldown);
+
+        // Tick3: forest -> plain2
+        engine.Step();
+        Assert.AreEqual(plain2.Id, army.CurrentHexId);
+    }
+
+    [TestMethod]
+    public void PlainMovementNoCooldown()
+    {
+        var world = new WorldState();
+        var hex1 = new Hex(1, 0, 0, TerrainType.Plain);
+        var hex2 = new Hex(2, 1, 0, TerrainType.Plain);
+        world.Map.AddHex(hex1);
+        world.Map.AddHex(hex2);
+
+        var army = new Army(1, 1, 1, hex1.Id);
+        world.Armies.Add(army);
+        army.OrderMove(hex2.Id);
+
+        var engine = new SimulationEngine(world);
+        engine.RegisterSystem(new MovementSystem());
+
+        engine.Step();
+        Assert.AreEqual(hex2.Id, army.CurrentHexId);
+        Assert.AreEqual(0, army.MoveCooldown);
+    }
 }

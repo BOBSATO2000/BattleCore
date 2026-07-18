@@ -22,6 +22,13 @@ namespace BattleCore.Systems
                     continue;
                 }
 
+                // クールダウン中は待機（Forest進入コスト）
+                if (army.MoveCooldown > 0)
+                {
+                    army.MoveCooldown--;
+                    continue;
+                }
+
                 if (army.DestinationHexId == null)
                     continue;
 
@@ -35,6 +42,10 @@ namespace BattleCore.Systems
                     continue;
 
                 army.MoveTo(next.Id);
+
+                // Forest進入時はクールダウン1をセット（次Tickは移動スキップ）
+                if (next.Terrain == TerrainType.Forest)
+                    army.MoveCooldown = 1;
 
                 if (army.CurrentHexId == army.DestinationHexId)
                     army.ClearDestination();
