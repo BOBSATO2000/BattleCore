@@ -44,8 +44,11 @@ namespace BattleCore.Systems
                 army.MoveTo(next.Id);
 
                 // Forest進入時はクールダウン1をセット（次Tickは移動スキップ）
+                // Rain時はForestのコストがさらに+1
                 if (next.Terrain == TerrainType.Forest)
-                    army.MoveCooldown = 1;
+                {
+                    army.MoveCooldown = context.World.Weather == Weather.Rain ? 2 : 1;
+                }
 
                 if (army.CurrentHexId == army.DestinationHexId)
                     army.ClearDestination();

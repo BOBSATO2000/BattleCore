@@ -3,10 +3,11 @@ namespace BattleCore.Simulation
     /// <summary>
     /// ゲーム内時間を管理するクラス。
     /// Step ごとに Advance() が呼ばれ、季節→年が進む。
-    /// 将来的には季節ごとの農業・補給・行軍速度への影響を実装する。
     /// </summary>
     public class GameTime
     {
+        private readonly Random _rng;
+
         /// <summary>経過ステップ数。テスト・デバッグ用途。</summary>
         public int Tick { get; private set; }
 
@@ -16,15 +17,19 @@ namespace BattleCore.Simulation
         /// <summary>現在の季節。</summary>
         public Season Season { get; private set; }
 
-        public GameTime()
+        /// <summary>現在の天気。毎Tick確率で変化する。</summary>
+        public Weather Weather { get; private set; } = Weather.Sunny;
+
+        public GameTime(int? seed = null)
         {
-            Year = 1560;
+            Year   = 1560;
             Season = Season.Spring;
+            _rng   = seed.HasValue ? new Random(seed.Value) : new Random();
         }
 
         /// <summary>
-        /// 時間を1ステップ進める。SimulationEngine.Step() の末尾で呼ばれる。
-        /// 春→夏→秋→冬→春（年+1）の順で進む。
+        /// 時間を1ステップ進める。季節・天気を更新する。
+        /// 天気遷移確率: Sunny→Rain 25%、Rain→Fog 20%、Fog→Sunny 50%、それ以外は維持。
         /// </summary>
         public void Advance()
         {
@@ -40,6 +45,14 @@ namespace BattleCore.Simulation
                     Year++;
                     break;
             }
+
+            Weather = Weather switch
+            {
+                Weather.Sunny => _rng.NextDouble() < 0.25 ? Weather.Rain  : Weather.Sunny,
+                Weather.Rain  => _rng.NextDouble() < 0.20 ? Weather.Fog   : Weather.Rain,
+                Weather.Fog   => _rng.NextDouble() < 0.50 ? Weather.Sunny : Weather.Fog,
+                _             => Weather.Sunny,
+            };
         }
     }
 }

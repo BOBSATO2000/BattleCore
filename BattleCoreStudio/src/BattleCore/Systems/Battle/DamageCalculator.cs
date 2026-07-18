@@ -1,5 +1,6 @@
 using BattleCore.Entities;
 using BattleCore.Map;
+using BattleCore.Simulation;
 using System;
 
 namespace BattleCore.Systems.Battle
@@ -21,25 +22,34 @@ namespace BattleCore.Systems.Battle
         private const int DefaultStat = 100;
 
         public BattleResult Calculate(Army left, Army right)
-            => Calculate(left, right, null, null, TerrainType.Plain);
+            => Calculate(left, right, null, null, TerrainType.Plain, Weather.Sunny);
 
         public BattleResult Calculate(
             Army left,
             Army right,
             Officer? leftOfficer,
             Officer? rightOfficer)
-            => Calculate(left, right, leftOfficer, rightOfficer, TerrainType.Plain);
+            => Calculate(left, right, leftOfficer, rightOfficer, TerrainType.Plain, Weather.Sunny);
 
-        /// <summary>
-        /// Officer能力値・地形を考慮して戦闘結果を計算する。
-        /// defenderTerrain: 防御側が立つHexの地形（Forest=敗者損害20%軽減、Mountain=30%軽減）
-        /// </summary>
         public BattleResult Calculate(
             Army left,
             Army right,
             Officer? leftOfficer,
             Officer? rightOfficer,
             TerrainType defenderTerrain)
+            => Calculate(left, right, leftOfficer, rightOfficer, defenderTerrain, Weather.Sunny);
+
+        /// <summary>
+        /// Officer能力値・地形・天気を考慮して戦闘結果を計算する。
+        /// Rain: 勝者損害・敗者損害ともに10%軽減。
+        /// </summary>
+        public BattleResult Calculate(
+            Army left,
+            Army right,
+            Officer? leftOfficer,
+            Officer? rightOfficer,
+            TerrainType defenderTerrain,
+            Weather weather)
         {
             // 実効兵力 = 兵力 × (Leadership / 100)
             var leftPower  = ApplyLeadership(left.Soldiers,  leftOfficer);
@@ -77,6 +87,13 @@ namespace BattleCore.Systems.Battle
                 _                    => 1.00
             };
             loserSoldiers = (int)(loserSoldiers * terrainFactor);
+
+            // 天気補正：Rain時は双方の損害10%軽減
+            if (weather == Weather.Rain)
+            {
+                winnerLosses  = (int)(winnerLosses  * 0.90);
+                loserSoldiers = (int)(loserSoldiers * 0.90);
+            }
 
             return new BattleResult(
                 winner:       winner,

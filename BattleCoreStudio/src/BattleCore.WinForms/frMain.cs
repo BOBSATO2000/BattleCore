@@ -184,7 +184,13 @@ namespace BattleCoreStudio
         private void UpdateUI()
         {
             var t = engine.Context.Time;
-            lblStatus.Text = $"Tick: {t.Tick}  Year: {t.Year}  {SeasonName(t.Season)}";
+            var weatherText = t.Weather switch
+            {
+                BattleCore.Simulation.Weather.Rain => " 🌧雨",
+                BattleCore.Simulation.Weather.Fog  => " 🌫霧",
+                _                                  => " ☀晴",
+            };
+            lblStatus.Text = $"Tick: {t.Tick}  Year: {t.Year}  {SeasonName(t.Season)}{weatherText}";
 
             // 勢力概要パネル
             pnlClans.Controls.Clear();

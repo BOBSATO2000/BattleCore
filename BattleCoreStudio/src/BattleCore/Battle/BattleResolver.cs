@@ -31,7 +31,8 @@ namespace BattleCore.Battle
             var result = calculator.Calculate(
                 battle.Attacker, battle.Defender,
                 attackerOfficer, defenderOfficer,
-                defenderTerrain);
+                defenderTerrain,
+                world.Weather);
 
             var winnerLosses = result.WinnerLosses;
 

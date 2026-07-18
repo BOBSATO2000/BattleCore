@@ -49,6 +49,7 @@ namespace BattleCore.Simulation
                 system.Update(Context);
 
             Context.Time.Advance();
+            Context.World.Weather = Context.Time.Weather;
         }
     }
 }

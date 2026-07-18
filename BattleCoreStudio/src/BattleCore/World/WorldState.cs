@@ -1,6 +1,7 @@
 using BattleCore.Entities;
 using BattleCore.Map;
 using BattleCore.Relations;
+using BattleCore.Simulation;
 using BattleCore.Vision;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,6 +35,9 @@ namespace BattleCore.World
 
         /// <summary>ヘックスマップ。地理ルールを管理する。</summary>
         public GameMap Map { get; } = new();
+
+        /// <summary>現在の天気。BattleResolver・MovementSystem が参照する。GameTime.Advance()後にUIから同期する。</summary>
+        public Weather Weather { get; set; } = Weather.Sunny;
 
         /// <summary>
         /// 各軍の索敵情報。キーは ArmyId。
