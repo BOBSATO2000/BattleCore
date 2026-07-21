@@ -1,0 +1,121 @@
+{
+  "title": "桶狭間 1560 ─ 天下への第一歩",
+  "startYear": 1560,
+  "map": [
+    { "id":  1, "q": 0, "r": 0, "terrain": "Plain"    },
+    { "id":  2, "q": 0, "r": 1, "terrain": "Plain"    },
+    { "id":  3, "q": 0, "r": 2, "terrain": "Plain"    },
+    { "id":  4, "q": 0, "r": 3, "terrain": "Forest"   },
+    { "id":  5, "q": 0, "r": 4, "terrain": "Forest"   },
+    { "id":  6, "q": 1, "r": 0, "terrain": "Plain"    },
+    { "id":  7, "q": 1, "r": 1, "terrain": "Plain"    },
+    { "id":  8, "q": 1, "r": 2, "terrain": "Forest"   },
+    { "id":  9, "q": 1, "r": 3, "terrain": "Forest"   },
+    { "id": 10, "q": 1, "r": 4, "terrain": "Plain"    },
+    { "id": 11, "q": 2, "r": 0, "terrain": "Plain"    },
+    { "id": 12, "q": 2, "r": 1, "terrain": "Forest"   },
+    { "id": 13, "q": 2, "r": 2, "terrain": "Forest"   },
+    { "id": 14, "q": 2, "r": 3, "terrain": "Plain"    },
+    { "id": 15, "q": 2, "r": 4, "terrain": "Plain"    },
+    { "id": 16, "q": 3, "r": 0, "terrain": "Plain"    },
+    { "id": 17, "q": 3, "r": 1, "terrain": "Plain"    },
+    { "id": 18, "q": 3, "r": 2, "terrain": "Plain"    },
+    { "id": 19, "q": 3, "r": 3, "terrain": "Mountain" },
+    { "id": 20, "q": 3, "r": 4, "terrain": "Plain"    },
+    { "id": 21, "q": 4, "r": 0, "terrain": "Plain"    },
+    { "id": 22, "q": 4, "r": 1, "terrain": "Plain"    },
+    { "id": 23, "q": 4, "r": 2, "terrain": "Plain"    },
+    { "id": 24, "q": 4, "r": 3, "terrain": "Plain"    },
+    { "id": 25, "q": 4, "r": 4, "terrain": "Plain"    },
+    { "id": 26, "q": 5, "r": 0, "terrain": "Plain"    },
+    { "id": 27, "q": 5, "r": 1, "terrain": "Plain"    },
+    { "id": 28, "q": 5, "r": 2, "terrain": "Plain"    },
+    { "id": 29, "q": 5, "r": 3, "terrain": "Plain"    },
+    { "id": 30, "q": 5, "r": 4, "terrain": "Plain"    }
+  ],
+  "clans": [
+    { "id": 1, "name": "織田", "daimyoOfficerId": 1  },
+    { "id": 2, "name": "今川", "daimyoOfficerId": 101 },
+    { "id": 3, "name": "松平", "daimyoOfficerId": 201 }
+  ],
+  "officers": [
+    { "id":   1, "name": "信長",   "leadership": 150, "strategy": 120, "courage": 145, "ambition": 90, "loyalty": 80,  "intelligence": 130, "personality": "Brave"      },
+    { "id":   2, "name": "秀吉",   "leadership": 110, "strategy": 130, "courage":  90, "ambition": 85, "loyalty": 75,  "intelligence": 145, "personality": "Ambitious"  },
+    { "id":   3, "name": "勝家",   "leadership": 130, "strategy":  90, "courage": 130, "ambition": 40, "loyalty": 90,  "intelligence":  80, "personality": "Brave"      },
+    { "id":   4, "name": "光秀",   "leadership": 120, "strategy": 130, "courage": 100, "ambition": 90, "loyalty": 40,  "intelligence": 150, "personality": "Ambitious"  },
+    { "id": 101, "name": "義元",   "leadership": 140, "strategy": 140, "courage": 100, "ambition": 70, "loyalty": 95,  "intelligence": 130, "personality": "Cautious"   },
+    { "id": 102, "name": "氏真",   "leadership":  70, "strategy":  60, "courage":  60, "ambition": 30, "loyalty": 80,  "intelligence":  70, "personality": "Cautious"   },
+    { "id": 103, "name": "雪斎",   "leadership": 120, "strategy": 150, "courage":  80, "ambition": 20, "loyalty": 95,  "intelligence": 155, "personality": "Loyal"      },
+    { "id": 201, "name": "元康",   "leadership": 120, "strategy": 110, "courage": 120, "ambition": 60, "loyalty": 50,  "intelligence": 120, "personality": "Cautious"   }
+  ],
+  "memberships": [
+    { "id":  1, "officerId":   1, "clanId": 1, "loyalty": 80 },
+    { "id":  2, "officerId":   2, "clanId": 1, "loyalty": 75 },
+    { "id":  3, "officerId":   3, "clanId": 1, "loyalty": 90 },
+    { "id":  4, "officerId":   4, "clanId": 1, "loyalty": 40 },
+    { "id":  5, "officerId": 101, "clanId": 2, "loyalty": 95 },
+    { "id":  6, "officerId": 102, "clanId": 2, "loyalty": 80 },
+    { "id":  7, "officerId": 103, "clanId": 2, "loyalty": 95 },
+    { "id":  8, "officerId": 201, "clanId": 3, "loyalty": 50 }
+  ],
+  "armies": [
+    { "id": 1, "clanId": 1, "currentHexId":  1, "soldiers":  500, "officerId":   1 },
+    { "id": 2, "clanId": 1, "currentHexId":  2, "soldiers":  800, "officerId":   3 },
+    { "id": 3, "clanId": 1, "currentHexId":  3, "soldiers":  600, "officerId":   2 },
+    { "id": 4, "clanId": 1, "currentHexId":  6, "soldiers":  400, "officerId":   4 },
+    { "id": 5, "clanId": 2, "currentHexId": 28, "soldiers": 2500, "officerId": 101 },
+    { "id": 6, "clanId": 2, "currentHexId": 27, "soldiers": 1200, "officerId": 103 },
+    { "id": 7, "clanId": 2, "currentHexId": 30, "soldiers":  800, "officerId": 102 },
+    { "id": 8, "clanId": 3, "currentHexId": 25, "soldiers":  600, "officerId": 201 }
+  ],
+  "relationships": [
+    { "id": 1, "fromOfficerId":   4, "toOfficerId":   1, "trust":  0, "respect": 20, "dislike": 60 },
+    { "id": 2, "fromOfficerId":   2, "toOfficerId":   1, "trust": 70, "respect": 80, "dislike":  0 },
+    { "id": 3, "fromOfficerId": 201, "toOfficerId": 101, "trust": 20, "respect": 40, "dislike": 30 }
+  ],
+  "alliances": [],
+  "castles": [
+    { "id": 1, "name": "清洲城",   "hexId":  1, "ownerClanId": 1, "reinforcementPerTick": 80 },
+    { "id": 2, "name": "小牧山城", "hexId":  6, "ownerClanId": 1, "reinforcementPerTick": 50 },
+    { "id": 3, "name": "鳴海城",   "hexId": 14, "ownerClanId": 2, "reinforcementPerTick": 60 },
+    { "id": 4, "name": "大高城",   "hexId": 20, "ownerClanId": 2, "reinforcementPerTick": 60 },
+    { "id": 5, "name": "駿府城",   "hexId": 28, "ownerClanId": 2, "reinforcementPerTick": 80 },
+    { "id": 6, "name": "岡崎城",   "hexId": 25, "ownerClanId": 3, "reinforcementPerTick": 60 }
+  ],
+  "eventTriggers": [
+    {
+      "id": "okehazama_storm",
+      "minTick": 3,
+      "message": "【桶狭間】突然の嵐が今川本陣を直撃！義元の軍に混乱が生じた。"
+    },
+    {
+      "id": "nobunaga_charge",
+      "minTick": 4,
+      "officerId": 1,
+      "adjacentToOfficerId": 101,
+      "message": "【信長の奇襲】信長、義元本陣に肉薄！わずかな手勢で天下を賭けた突撃！"
+    },
+    {
+      "id": "yoshimoto_survives",
+      "minTick": 6,
+      "officerId": 101,
+      "minDislike": 0,
+      "maxLoyalty": 100,
+      "message": "【if: 義元生存】義元が奇跡的に生き延びた。今川の大軍は尾張を飲み込もうとしている…"
+    },
+    {
+      "id": "motoyasu_watches",
+      "minTick": 5,
+      "officerId": 201,
+      "message": "【元康の決断】松平元康は今川と織田の戦いを静観している。どちらが勝つかで運命が変わる。"
+    },
+    {
+      "id": "mitsuhide_ambition",
+      "minTick": 4,
+      "officerId": 4,
+      "minDislike": 70,
+      "maxLoyalty": 45,
+      "message": "【光秀の野心】光秀は信長の苦境を見て、独自の行動を考え始めた…"
+    }
+  ]
+}
