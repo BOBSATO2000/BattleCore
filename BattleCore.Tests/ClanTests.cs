@@ -23,9 +23,7 @@ namespace BattleCore.Tests
 				army.Id);
 
 
-			Assert.AreEqual(
-				1,
-				clan.ArmyIds.Count);
+			Assert.HasCount(1, clan.ArmyIds);
 		}
 	}
 }

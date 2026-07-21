@@ -25,7 +25,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new LoyaltySystem(betrayalThreshold: 80).Update(context);
 
-            Assert.AreEqual(1, context.EventQueue.Count);
+            Assert.HasCount(1, context.EventQueue);
             var ev = (BetrayalEvent)context.EventQueue.Dequeue();
             Assert.AreEqual(officer.Id, ev.OfficerId);
             Assert.AreEqual(1, ev.FromClanId);
@@ -45,8 +45,8 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new LoyaltySystem(betrayalThreshold: 80).Update(context);
 
-            Assert.AreEqual(0, context.EventQueue.Count);
-            Assert.AreEqual(1, world.Memberships.Count);
+            Assert.IsEmpty(context.EventQueue);
+            Assert.HasCount(1, world.Memberships);
         }
 
         [TestMethod]
@@ -61,7 +61,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new LoyaltySystem(betrayalThreshold: 80).Update(context);
 
-            Assert.AreEqual(0, world.Memberships.Count);
+            Assert.IsEmpty(world.Memberships);
         }
 
         [TestMethod]
@@ -89,7 +89,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new LoyaltySystem(betrayalThreshold: 80).Update(context);
 
-            Assert.AreEqual(1, context.EventQueue.Count);
+            Assert.HasCount(1, context.EventQueue);
         }
 
         [TestMethod]

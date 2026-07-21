@@ -9,14 +9,27 @@ using System.Linq;
 
 namespace BattleCore.Battle
 {
+    /// <summary>
+    /// 1件の戦闘を解決し、兵力更新・武将成長・イベント生成を行う。
+    /// BattleSystem から呼び出され、BattleFinder が見つけた戦闘ペアを受け取る。
+    /// </summary>
     public class BattleResolver
     {
         private readonly DamageCalculator calculator = new();
 
+        /// <summary>Trustボーナスを適用する信頼度の閾値。</summary>
         public const int TrustBonusThreshold = 60;
+
+        /// <summary>Trustボーナス適用時の勝者損害軽減係数。</summary>
         private const double TrustBonusFactor = 0.95;
+
+        /// <summary>武将の能力値成長の上限。</summary>
         private const int GrowthCap = 200;
 
+        /// <summary>
+        /// 戦闘を解決し BattleLogEvent を返す。
+        /// 地形・天気・城・Trust・武将成長を全て適用する。
+        /// </summary>
         public BattleLogEvent Resolve(Battle battle, WorldState world)
         {
             var attackerOfficer = GetOfficer(battle.Attacker, world);
@@ -91,6 +104,7 @@ namespace BattleCore.Battle
                 growthDetail);
         }
 
+        /// <summary>Army に配属された Officer を返す。未配属の場合は null。</summary>
         private static Officer? GetOfficer(Army army, WorldState world)
         {
             if (army.OfficerId == null) return null;

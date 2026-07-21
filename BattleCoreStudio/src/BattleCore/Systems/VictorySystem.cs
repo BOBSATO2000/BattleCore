@@ -12,6 +12,7 @@ namespace BattleCore.Systems
     /// </summary>
     public class VictorySystem : ISimulationSystem
     {
+        /// <summary>GameOverイベント発火済みフラグ。二重発火を防ぐ。</summary>
         private bool gameOver = false;
 
         public void Update(SimulationContext context)

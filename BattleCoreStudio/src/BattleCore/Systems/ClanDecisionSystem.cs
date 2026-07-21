@@ -34,6 +34,10 @@ namespace BattleCore.Systems
         {
             foreach (var clan in context.World.Clans)
             {
+                // プレイヤー操作の勢力はAI制御をスキップする
+                // （将来の PlayerController / PlayerCommandInput 層が CommandQueue に命令を積む）
+                if (clan.IsPlayerControlled) continue;
+
                 foreach (var command in strategy.Decide(clan, context.World))
                 {
                     context.CommandQueue.Enqueue(command);

@@ -140,7 +140,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new BattleSystem().Update(context);
 
-            Assert.IsTrue(army1.Soldiers + army2.Soldiers < 2000);
+            Assert.IsLessThan(2000, army1.Soldiers + army2.Soldiers);
         }
 
         [TestMethod]
@@ -159,7 +159,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new BattleSystem().Update(context);
 
-            Assert.IsTrue(army1.Soldiers + army2.Soldiers < before);
+            Assert.IsLessThan(before, army1.Soldiers + army2.Soldiers);
         }
 
         [TestMethod]
@@ -217,7 +217,7 @@ namespace BattleCore.Tests
             new BattleSystem().Update(new SimulationContext(world2));
             var highLosses = b1.Soldiers; // Strategy高い→損害多い
 
-            Assert.IsTrue(lowLosses > highLosses);
+            Assert.IsGreaterThan(highLosses, lowLosses);
         }
 
         [TestMethod]

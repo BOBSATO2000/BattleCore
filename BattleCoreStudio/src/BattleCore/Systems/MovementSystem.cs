@@ -6,7 +6,7 @@ namespace BattleCore.Systems
 {
     /// <summary>
     /// 移動システム。Army の DestinationHexId を見て1Hexずつ移動させる。
-    /// 地形チェック（Mountain 不可）を行い、目的地到着時に DestinationHexId をクリアする。
+    /// 地形チェック（Mountain 不可）・AP消費・MoveCooldown を処理する。
     /// CommandExecutionSystem が OrderMove を設定した後に実行される。
     /// </summary>
     public class MovementSystem : ISimulationSystem
@@ -21,6 +21,10 @@ namespace BattleCore.Systems
                     army.ClearDestination();
                     continue;
                 }
+
+                // APがなければ移動不可
+                if (army.ActionPoints <= 0)
+                    continue;
 
                 // クールダウン中は待機（Forest進入コスト）
                 if (army.MoveCooldown > 0)
@@ -42,6 +46,7 @@ namespace BattleCore.Systems
                     continue;
 
                 army.MoveTo(next.Id);
+                army.ActionPoints--;
 
                 // Forest進入時はクールダウン1をセット（次Tickは移動スキップ）
                 // Rain時はForestのコストがさらに+1

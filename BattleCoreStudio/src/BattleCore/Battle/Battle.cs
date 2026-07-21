@@ -14,6 +14,7 @@ namespace BattleCore.Battle
         /// <summary>防御側の軍。</summary>
         public Army Defender { get; }
 
+        /// <summary>攻撃側と防御側を指定するコンストラクタ。</summary>
         public Battle(Army attacker, Army defender)
         {
             Attacker = attacker;

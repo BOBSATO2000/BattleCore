@@ -37,7 +37,7 @@ namespace BattleCore.Tests
             new RecruitmentSystem(recruitAmbitionThreshold: 30).Update(context);
 
             Assert.AreEqual(clan.Id, ronin.ClanId);
-            Assert.AreEqual(1, context.EventQueue.Count);
+            Assert.HasCount(1, context.EventQueue);
             var ev = (RecruitEvent)context.EventQueue.Dequeue();
             Assert.AreEqual(officer.Id, ev.OfficerId);
             Assert.AreEqual(clan.Id, ev.ToClanId);
@@ -66,7 +66,7 @@ namespace BattleCore.Tests
             new RecruitmentSystem(recruitAmbitionThreshold: 30).Update(context);
 
             Assert.AreEqual(0, ronin.ClanId);
-            Assert.AreEqual(0, context.EventQueue.Count);
+            Assert.IsEmpty(context.EventQueue);
         }
 
         [TestMethod]
@@ -91,7 +91,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new RecruitmentSystem(recruitAmbitionThreshold: 30).Update(context);
 
-            Assert.AreEqual(1, world.Memberships.Count);
+            Assert.HasCount(1, world.Memberships);
             Assert.AreEqual(officer.Id, world.Memberships[0].OfficerId);
             Assert.AreEqual(clan.Id,    world.Memberships[0].ClanId);
         }

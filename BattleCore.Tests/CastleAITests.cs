@@ -2,8 +2,10 @@ using BattleCore.AI;
 using BattleCore.Commands;
 using BattleCore.Entities;
 using BattleCore.Map;
+using BattleCore.Vision;
 using BattleCore.World;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace BattleCore.Tests
@@ -11,6 +13,16 @@ namespace BattleCore.Tests
     [TestClass]
     public class CastleAITests
     {
+        private static void SetFullVision(WorldState world)
+        {
+            var allHexIds = new HashSet<int>(world.Map.Hexes.Select(h => h.Id));
+            foreach (var army in world.Armies)
+            {
+                var v = new VisionData(army.Id);
+                foreach (var id in allHexIds) v.VisibleHexes.Add(id);
+                world.Visions[army.Id] = v;
+            }
+        }
         [TestMethod]
         public void ArmyPrioritizesNearerEnemyCastle()
         {
@@ -32,9 +44,10 @@ namespace BattleCore.Tests
             // 敵城はHex2（距離1）
             world.Castles.Add(new Castle(1, "敵城", 2, clanB.Id, 50));
 
+            SetFullVision(world);
             var commands = new AggressiveClanStrategy().Decide(clanA, world).ToList();
 
-            Assert.AreEqual(1, commands.Count);
+            Assert.HasCount(1, commands);
             var move = (MoveArmyCommand)commands[0];
             Assert.AreEqual(2, move.DestinationHexId);
         }
@@ -60,9 +73,10 @@ namespace BattleCore.Tests
             // 自勢力の城はHex1
             world.Castles.Add(new Castle(1, "自城", 1, clanA.Id, 50));
 
+            SetFullVision(world);
             var commands = new AggressiveClanStrategy(retreatThreshold: 300).Decide(clanA, world).ToList();
 
-            Assert.AreEqual(1, commands.Count);
+            Assert.HasCount(1, commands);
             var move = (MoveArmyCommand)commands[0];
             Assert.AreEqual(1, move.DestinationHexId);
         }
@@ -89,9 +103,10 @@ namespace BattleCore.Tests
             // 敵城はHex4（距離3）
             world.Castles.Add(new Castle(1, "敵城", 4, clanB.Id, 50));
 
+            SetFullVision(world);
             var commands = new AggressiveClanStrategy().Decide(clanA, world).ToList();
 
-            Assert.AreEqual(1, commands.Count);
+            Assert.HasCount(1, commands);
             var move = (MoveArmyCommand)commands[0];
             // 敵軍方向（Hex2）へ移動
             Assert.AreEqual(2, move.DestinationHexId);

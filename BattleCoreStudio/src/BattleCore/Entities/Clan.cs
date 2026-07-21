@@ -23,6 +23,20 @@ namespace BattleCore.Entities
         /// <summary>所属軍IDリスト。</summary>
         public List<int> ArmyIds { get; } = new();
 
+        /// <summary>
+        /// この勢力の君主となる Officer の ID。
+        /// 将来的に Daimyo クラスへ昇格させる際の拡張ポイント。
+        /// null の場合は君主未設定（中立勢力・無所属など）。
+        /// </summary>
+        public int? DaimyoOfficerId { get; set; }
+
+        /// <summary>
+        /// プレイヤーが操作する勢力かどうか。
+        /// true の場合、ClanDecisionSystem による AI 自動操作をスキップする。
+        /// false（デフォルト）の場合は AI が操作する。
+        /// </summary>
+        public bool IsPlayerControlled { get; set; } = false;
+
         /// <summary>IDを直接指定するコンストラクタ。</summary>
         public Clan(int id) : base(id) { }
 

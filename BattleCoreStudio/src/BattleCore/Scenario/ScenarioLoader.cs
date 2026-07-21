@@ -8,6 +8,10 @@ using System.Text.Json;
 
 namespace BattleCore.Scenario
 {
+    /// <summary>
+    /// JSONシナリオファイルを読み込み WorldState を構築するスタティッククラス。
+    /// frMain.InitSimulation() から呼び出され、シナリオ選択ダイアログで選んだファイルを渡す。
+    /// </summary>
     public static class ScenarioLoader
     {
         private static readonly JsonSerializerOptions Options = new()
@@ -15,6 +19,9 @@ namespace BattleCore.Scenario
             PropertyNameCaseInsensitive = true
         };
 
+        /// <summary>
+        /// JSONファイルを読み込み、WorldState・タイトル・イベントトリガーリストを返す。
+        /// </summary>
         public static (WorldState world, string title, List<EventTriggerData> triggers) Load(string path)
         {
             var json = File.ReadAllText(path);
@@ -35,7 +42,12 @@ namespace BattleCore.Scenario
             }
 
             foreach (var c in data.Clans)
-                world.Clans.Add(new Clan(c.Id) { Name = c.Name });
+                world.Clans.Add(new Clan(c.Id)
+                {
+                    Name               = c.Name,
+                    DaimyoOfficerId    = c.DaimyoOfficerId,
+                    IsPlayerControlled = c.IsPlayerControlled,
+                });
 
             foreach (var o in data.Officers)
                 world.Officers.Add(new Officer(o.Id, o.Name)

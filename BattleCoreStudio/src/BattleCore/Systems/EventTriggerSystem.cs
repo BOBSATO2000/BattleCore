@@ -11,7 +11,10 @@ namespace BattleCore.Systems
     /// </summary>
     public class EventTriggerSystem : ISimulationSystem
     {
+        /// <summary>発火条件を持つトリガーリスト。ScenarioLoader から渡される。</summary>
         private readonly List<EventTriggerData> triggers;
+
+        /// <summary>発火済みトリガーIDのセット。同じイベントの二重発火を防ぐ。</summary>
         private readonly HashSet<string> fired = new();
 
         public EventTriggerSystem(IEnumerable<EventTriggerData> triggers)

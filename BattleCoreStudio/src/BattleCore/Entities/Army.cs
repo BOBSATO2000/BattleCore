@@ -78,6 +78,19 @@ namespace BattleCore.Entities
         /// </summary>
         public int MoveCooldown { get; set; } = 0;
 
+        /// <summary>
+        /// 行動力（AP）。毎ターン MaxActionPoints にリセットされる。
+        /// 移動1Hex = 1AP消費。Forest進入 = 追加1AP消費。
+        /// 0になると移動不可。
+        /// </summary>
+        public int ActionPoints { get; set; } = MaxActionPoints;
+
+        /// <summary>1ターンあたりの最大行動力。</summary>
+        public const int MaxActionPoints = 3;
+
+        /// <summary>APを最大値にリセットする。ターン開始時に呼ぶ。</summary>
+        public void ResetActionPoints() => ActionPoints = MaxActionPoints;
+
         /// <summary>指揮官（Officer）を配属する。</summary>
         public void AssignOfficer(int officerId) => OfficerId = officerId;
 

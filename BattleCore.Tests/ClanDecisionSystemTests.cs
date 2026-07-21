@@ -5,8 +5,10 @@ using BattleCore.Map;
 using BattleCore.Simulation;
 using BattleCore.Systems;
 using BattleCore.Systems.Battle;
+using BattleCore.Vision;
 using BattleCore.World;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using System.Collections.Generic;
 using System.Linq;
 
 namespace BattleCore.Tests
@@ -14,6 +16,17 @@ namespace BattleCore.Tests
     [TestClass]
     public class ClanDecisionSystemTests
     {
+        /// <summary>全 Army が全 Hex を視界内に持つ Visions を設定する（Fog of War なし状態）。</summary>
+        private static void SetFullVision(WorldState world)
+        {
+            var allHexIds = new HashSet<int>(world.Map.Hexes.Select(h => h.Id));
+            foreach (var army in world.Armies)
+            {
+                var v = new VisionData(army.Id);
+                foreach (var id in allHexIds) v.VisibleHexes.Add(id);
+                world.Visions[army.Id] = v;
+            }
+        }
         [TestMethod]
         public void ClanIssuesMoveCommandTowardEnemy()
         {
@@ -35,10 +48,11 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             var system = new ClanDecisionSystem(new AggressiveClanStrategy());
 
+            SetFullVision(world);
             system.Update(context);
 
             // 各 Clan の Army 分のコマンドが生成される
-            Assert.AreEqual(2, context.CommandQueue.Count);
+            Assert.HasCount(2, context.CommandQueue);
         }
 
         [TestMethod]
@@ -56,10 +70,11 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             var system = new ClanDecisionSystem(new AggressiveClanStrategy());
 
+            SetFullVision(world);
             system.Update(context);
 
             // 敵がいないのでコマンドなし
-            Assert.AreEqual(0, context.CommandQueue.Count);
+            Assert.IsEmpty(context.CommandQueue);
         }
 
         [TestMethod]
@@ -81,10 +96,11 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             var system = new ClanDecisionSystem(new AggressiveClanStrategy());
 
+            SetFullVision(world);
             system.Update(context);
 
             // 同 Hex なので移動命令なし（BattleSystem に任せる）
-            Assert.AreEqual(0, context.CommandQueue.Count);
+            Assert.IsEmpty(context.CommandQueue);
         }
 
         [TestMethod]
@@ -109,6 +125,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             var engine = new SimulationEngine(context);
 
+            engine.Register(new VisionSystem());
             engine.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
             engine.Register(new CommandExecutionSystem());
             engine.Register(new MovementSystem());
@@ -143,10 +160,11 @@ namespace BattleCore.Tests
             world.Armies.AddRange(new[] { armyA, armyB });
 
             var strategy = new AggressiveClanStrategy(retreatThreshold: 300);
+            SetFullVision(world);
             var commands = strategy.Decide(clanA, world).ToList();
 
             // 撤退命令が1件出る
-            Assert.AreEqual(1, commands.Count);
+            Assert.HasCount(1, commands);
             Assert.IsInstanceOfType(commands[0], typeof(MoveArmyCommand));
         }
 
@@ -168,10 +186,11 @@ namespace BattleCore.Tests
             world.Armies.AddRange(new[] { armyA, armyB });
 
             var strategy = new AggressiveClanStrategy(retreatThreshold: 300);
+            SetFullVision(world);
             var commands = strategy.Decide(clanA, world).ToList();
 
             // 進軍命令が1件出る
-            Assert.AreEqual(1, commands.Count);
+            Assert.HasCount(1, commands);
             Assert.IsInstanceOfType(commands[0], typeof(MoveArmyCommand));
         }
     }

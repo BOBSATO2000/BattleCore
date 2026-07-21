@@ -1,0 +1,6 @@
+root = true
+
+[*.cs]
+# MSTEST0037: Assert.IsTrue の代わりに型付きアサーションを使用する推奨
+# IsGreaterThan(lowerBound, value) の引数順がテストの意図と逆になるため抑制
+dotnet_diagnostic.MSTEST0037.severity = none

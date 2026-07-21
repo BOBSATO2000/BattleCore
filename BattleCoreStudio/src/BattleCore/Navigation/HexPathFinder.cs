@@ -4,58 +4,74 @@ using System.Collections.Generic;
 namespace BattleCore.Navigation
 {
     /// <summary>
-    /// BFS（幅優先探索）による経路探索実装。
-    /// 地形コストを考慮しない最短ステップ数の経路を返す。
-    /// 将来的には地形コスト対応の A* に置き換えることができる。
+    /// 地形コスト対応 A* による経路探索実装。
+    /// Plain=1, Forest=2, Mountain=通過不可 のコストで最短コスト経路を返す。
     /// </summary>
     public class HexPathFinder : IPathFinder
     {
+        private static int TerrainCost(TerrainType terrain) => terrain switch
+        {
+            TerrainType.Forest => 2,
+            _ => 1,
+        };
+
         /// <summary>
-        /// BFS で startHexId から targetHexId への最短経路を返す。
+        /// A* で startHexId から targetHexId への最小コスト経路を返す。
         /// 戻り値は [startHexId, ..., targetHexId] の順のリスト。
+        /// 経路が見つからない場合は空リストを返す。
         /// </summary>
         public List<int> FindPath(GameMap map, int startHexId, int targetHexId)
         {
-            var queue = new Queue<int>();
-            var previous = new Dictionary<int, int?>();
+            var target = map.GetHexById(targetHexId);
+            if (target == null) return new List<int>();
 
-            queue.Enqueue(startHexId);
-            previous[startHexId] = null;
+            // g: 開始からのコスト, f: g + ヒューリスティック
+            var gCost = new Dictionary<int, int> { [startHexId] = 0 };
+            var previous = new Dictionary<int, int?> { [startHexId] = null };
 
-            while (queue.Count > 0)
+            // 優先度キュー（f値昇順）: (f, hexId)
+            var open = new SortedSet<(int f, int id)>(Comparer<(int f, int id)>.Create(
+                (a, b) => a.f != b.f ? a.f.CompareTo(b.f) : a.id.CompareTo(b.id)));
+            open.Add((Heuristic(map.GetHexById(startHexId)!, target), startHexId));
+
+            while (open.Count > 0)
             {
-                var current = queue.Dequeue();
+                var (_, current) = open.Min;
+                open.Remove(open.Min);
 
                 if (current == targetHexId)
-                    break;
+                    return BuildPath(previous, targetHexId);
 
-                foreach (var next in map.GetNeighbors(current))
+                foreach (var neighbor in map.GetNeighbors(current))
                 {
-                    if (previous.ContainsKey(next.Id))
+                    // Mountain は目的地でない限り通過不可
+                    if (neighbor.Terrain == TerrainType.Mountain && neighbor.Id != targetHexId)
                         continue;
 
-                    // Mountain は通過不可
-                    if (next.Terrain == BattleCore.Map.TerrainType.Mountain && next.Id != targetHexId)
+                    int newG = gCost[current] + TerrainCost(neighbor.Terrain);
+
+                    if (gCost.TryGetValue(neighbor.Id, out int existingG) && newG >= existingG)
                         continue;
 
-                    previous[next.Id] = current;
-                    queue.Enqueue(next.Id);
+                    gCost[neighbor.Id] = newG;
+                    previous[neighbor.Id] = current;
+                    int f = newG + Heuristic(neighbor, target);
+                    open.Add((f, neighbor.Id));
                 }
             }
 
-            return BuildPath(previous, targetHexId);
+            return new List<int>();
         }
 
-        /// <summary>previous マップを逆順に辿って経路リストを構築する。</summary>
-        private List<int> BuildPath(Dictionary<int, int?> previous, int target)
+        /// <summary>ヘックス距離をヒューリスティックとして使用する。</summary>
+        private static int Heuristic(Hex a, Hex b) => HexDistance.Calculate(a, b);
+
+        private static List<int> BuildPath(Dictionary<int, int?> previous, int target)
         {
             var path = new List<int>();
-
-            if (!previous.ContainsKey(target))
-                return path;
+            if (!previous.ContainsKey(target)) return path;
 
             int? current = target;
-
             while (current != null)
             {
                 path.Add(current.Value);

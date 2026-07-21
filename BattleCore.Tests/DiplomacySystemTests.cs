@@ -29,7 +29,7 @@ namespace BattleCore.Tests
             world.Armies.AddRange(new[] { a1, a2 });
 
             var battles = new BattleFinder().Find(world).ToList();
-            Assert.AreEqual(0, battles.Count);
+            Assert.IsEmpty(battles);
         }
 
         [TestMethod]
@@ -44,7 +44,7 @@ namespace BattleCore.Tests
             world.Armies.AddRange(new[] { a1, a2 });
 
             var battles = new BattleFinder().Find(world).ToList();
-            Assert.AreEqual(1, battles.Count);
+            Assert.HasCount(1, battles);
         }
 
         [TestMethod]
@@ -59,7 +59,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new DiplomacySystem().Update(context);
 
-            Assert.AreEqual(0, world.Alliances.Count);
+            Assert.IsEmpty(world.Alliances);
             Assert.IsTrue(context.EventQueue.OfType<ScenarioEvent>().Any());
         }
 
@@ -75,7 +75,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new DiplomacySystem().Update(context);
 
-            Assert.AreEqual(1, world.Alliances.Count);
+            Assert.HasCount(1, world.Alliances);
             Assert.AreEqual(4, world.Alliances[0].RemainingTicks);
         }
     }

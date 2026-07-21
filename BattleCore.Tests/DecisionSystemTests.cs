@@ -29,7 +29,7 @@ namespace BattleCore.Tests
             system.Update(context);
 
             // 両軍が互いを検知してコマンドを出す
-            Assert.AreEqual(2, context.CommandQueue.Count);
+            Assert.HasCount(2, context.CommandQueue);
         }
 
         [TestMethod]

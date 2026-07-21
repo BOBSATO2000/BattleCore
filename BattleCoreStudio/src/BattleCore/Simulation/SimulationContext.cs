@@ -1,6 +1,5 @@
 using BattleCore.Commands;
 using BattleCore.World;
-using System.Collections.Generic;
 
 namespace BattleCore.Simulation
 {
@@ -17,12 +16,15 @@ namespace BattleCore.Simulation
         /// <summary>ゲーム世界の全状態。</summary>
         public WorldState World { get; }
 
+        /// <summary>現在のターンフェーズ。StepPhase() で進む。</summary>
+        public TurnPhase CurrentPhase { get; set; } = TurnPhase.PlayerPhase;
+
         /// <summary>
         /// コマンドキュー。
         /// DecisionSystem が命令を Enqueue し、CommandExecutionSystem が Dequeue して実行する。
         /// 「考えるターン」と「実行するターン」を分離するための仕組み。
         /// </summary>
-        public Queue<ICommand> CommandQueue { get; } = new();
+        public CommandQueue CommandQueue { get; } = new();
 
         /// <summary>
         /// イベントキュー。
