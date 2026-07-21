@@ -337,9 +337,9 @@ namespace BattleCoreStudio
             AppendTo(r, "--- 性格別統計 ---\n", Color.FromArgb(100, 200, 255));
             foreach (var (_, ps) in summary.StatsByPersonality().OrderBy(x => x.Key))
             {
-                double refPct = summary.TotalRuns > 0 ? ps.RefusalCount    * 100.0 / summary.TotalRuns : 0;
-                double indPct = summary.TotalRuns > 0 ? ps.IndependentCount * 100.0 / summary.TotalRuns : 0;
-                AppendTo(r, $"  {ps.Personality,-12} 拒否:{refPct:F1}%  独断:{indPct:F1}%\n",
+                double refAvg = summary.TotalRuns > 0 ? ps.RefusalCount     / (double)summary.TotalRuns : 0;
+                double indAvg = summary.TotalRuns > 0 ? ps.IndependentCount / (double)summary.TotalRuns : 0;
+                AppendTo(r, $"  {ps.Personality,-12} 拒否:{refAvg:F1}回/試行  独断:{indAvg:F1}回/試行\n",
                     Color.FromArgb(200, 160, 255));
             }
             AppendTo(r, "\n");

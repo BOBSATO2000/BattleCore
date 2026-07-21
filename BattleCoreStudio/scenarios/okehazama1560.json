@@ -63,9 +63,9 @@
     { "id": 2, "clanId": 1, "currentHexId":  2, "soldiers":  800, "officerId":   3 },
     { "id": 3, "clanId": 1, "currentHexId":  3, "soldiers":  600, "officerId":   2 },
     { "id": 4, "clanId": 1, "currentHexId":  6, "soldiers":  400, "officerId":   4 },
-    { "id": 5, "clanId": 2, "currentHexId": 28, "soldiers": 2500, "officerId": 101 },
-    { "id": 6, "clanId": 2, "currentHexId": 27, "soldiers": 1200, "officerId": 103 },
-    { "id": 7, "clanId": 2, "currentHexId": 30, "soldiers":  800, "officerId": 102 },
+    { "id": 5, "clanId": 2, "currentHexId": 28, "soldiers": 1800, "officerId": 101 },
+    { "id": 6, "clanId": 2, "currentHexId": 27, "soldiers":  800, "officerId": 103 },
+    { "id": 7, "clanId": 2, "currentHexId": 30, "soldiers":  600, "officerId": 102 },
     { "id": 8, "clanId": 3, "currentHexId": 25, "soldiers":  600, "officerId": 201 }
   ],
   "relationships": [
