@@ -20,6 +20,7 @@ namespace BattleCoreStudio
         private string? _currentSavePath = null;
         private int?   _selectedArmyId  = null;
         private readonly Dictionary<int, (string Summary, IReadOnlyList<string> Factors)> _lastDecisions = new();
+        private readonly DebugOverlay _overlay = new();
 
         private const string SaveFilter = "BattleCore Save (*.bcsave)|*.bcsave|All files (*.*)|*.*";
 
@@ -32,6 +33,8 @@ namespace BattleCoreStudio
             InitSimulation();
 
             autoTimer.Tick += (s, e) => { engine.Step(); UpdateUI(); };
+            KeyPreview = true;
+            KeyDown   += frMain_KeyDown;
         }
 
         // -------------------------------------------------------
@@ -219,6 +222,19 @@ namespace BattleCoreStudio
                 MessageBox.Show($"ロードに失敗しました。\n{ex.Message}",
                     "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
             }
+        }
+
+        // -------------------------------------------------------
+        // F1-F5 オーバーレイ切替
+        // -------------------------------------------------------
+        private void frMain_KeyDown(object? sender, KeyEventArgs e)
+        {
+            if (!_overlay.HandleKey(e.KeyCode)) return;
+            rtbDebug.Visible  = _overlay.DebugConsole;
+            lblDebug.Visible  = _overlay.DebugConsole;
+            lblStatus.Text    = _overlay.StatusText;
+            pnlMap.Invalidate();
+            e.Handled = true;
         }
 
         // -------------------------------------------------------
@@ -638,6 +654,91 @@ namespace BattleCoreStudio
 
             // 凡例
             DrawLegend(g);
+
+            // デバッグレイヤー
+            if (_overlay.Path)     DrawPathLayer(g);
+            if (_overlay.Vision)   DrawVisionLayer(g);
+            if (_overlay.FogOfWar) DrawFogLayer(g);
+        }
+
+        // -------------------------------------------------------
+        // Pathレイヤー（選択部隊のA*経路 + コスト）
+        // -------------------------------------------------------
+        private void DrawPathLayer(Graphics g)
+        {
+            if (_selectedArmyId == null) return;
+            var army = world.GetArmyById(_selectedArmyId.Value);
+            if (army?.DestinationHexId == null || army.DestinationHexId.Value == army.CurrentHexId) return;
+
+            var result = new BattleCore.Navigation.HexPathFinder()
+                .FindPathWithCost(world.Map, army.CurrentHexId, army.DestinationHexId.Value);
+            if (result.HexIds.Count < 2) return;
+
+            using var pathPen = new Pen(Color.FromArgb(220, 255, 220, 60), 3f);
+            pathPen.DashStyle = System.Drawing.Drawing2D.DashStyle.Dash;
+            for (int i = 0; i < result.HexIds.Count - 1; i++)
+            {
+                var fh = world.Map.GetHexById(result.HexIds[i]);
+                var th = world.Map.GetHexById(result.HexIds[i + 1]);
+                if (fh == null || th == null) continue;
+                g.DrawLine(pathPen, HexToPixel(fh.X, fh.Y), HexToPixel(th.X, th.Y));
+            }
+            // 各Hexにコスト表示
+            for (int i = 1; i < result.HexIds.Count; i++)
+            {
+                var hex = world.Map.GetHexById(result.HexIds[i]);
+                if (hex == null) continue;
+                var c = HexToPixel(hex.X, hex.Y);
+                g.DrawString($"({result.StepCosts[i]})",
+                    new Font("Arial", 7f, FontStyle.Bold), Brushes.Yellow, c.X - 8, c.Y - 20);
+            }
+            // Total Cost
+            var sh = world.Map.GetHexById(result.HexIds[0]);
+            if (sh != null)
+            {
+                var sc = HexToPixel(sh.X, sh.Y);
+                g.DrawString($"Total:{result.TotalCost}",
+                    new Font("Arial", 7f, FontStyle.Bold), Brushes.Yellow, sc.X - 16, sc.Y - 28);
+            }
+        }
+
+        // -------------------------------------------------------
+        // Visionレイヤー（選択部隊の可視範囲ハイライト）
+        // -------------------------------------------------------
+        private void DrawVisionLayer(Graphics g)
+        {
+            if (_selectedArmyId == null) return;
+            var army = world.GetArmyById(_selectedArmyId.Value);
+            if (army == null) return;
+
+            var visible = world.Visions.TryGetValue(army.Id, out var vd)
+                ? vd.VisibleHexes : new HashSet<int>();
+            using var brush = new SolidBrush(Color.FromArgb(40, 100, 255, 100));
+            foreach (var hexId in visible)
+            {
+                var hex = world.Map.GetHexById(hexId);
+                if (hex == null) continue;
+                g.FillPolygon(brush, HexCorners(HexToPixel(hex.X, hex.Y)));
+            }
+        }
+
+        // -------------------------------------------------------
+        // FogOfWarレイヤー（非可視エリアを暗転）
+        // -------------------------------------------------------
+        private void DrawFogLayer(Graphics g)
+        {
+            if (_selectedArmyId == null) return;
+            var army = world.GetArmyById(_selectedArmyId.Value);
+            if (army == null) return;
+
+            var visible = world.Visions.TryGetValue(army.Id, out var vd)
+                ? vd.VisibleHexes : new HashSet<int>();
+            using var fog = new SolidBrush(Color.FromArgb(160, 10, 10, 20));
+            foreach (var hex in world.Map.Hexes)
+            {
+                if (visible.Contains(hex.Id)) continue;
+                g.FillPolygon(fog, HexCorners(HexToPixel(hex.X, hex.Y)));
+            }
         }
 
         // -------------------------------------------------------

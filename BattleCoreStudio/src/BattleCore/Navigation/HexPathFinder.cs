@@ -22,14 +22,21 @@ namespace BattleCore.Navigation
         /// </summary>
         public List<int> FindPath(GameMap map, int startHexId, int targetHexId)
         {
+            return FindPathWithCost(map, startHexId, targetHexId).HexIds.ToList();
+        }
+
+        /// <summary>
+        /// A* でコスト付き経路を返す。
+        /// </summary>
+        public PathResult FindPathWithCost(GameMap map, int startHexId, int targetHexId)
+        {
             var target = map.GetHexById(targetHexId);
-            if (target == null) return new List<int>();
+            if (target == null) return PathResult.Empty;
 
-            // g: 開始からのコスト, f: g + ヒューリスティック
-            var gCost = new Dictionary<int, int> { [startHexId] = 0 };
+            var gCost    = new Dictionary<int, int>  { [startHexId] = 0 };
             var previous = new Dictionary<int, int?> { [startHexId] = null };
+            var stepCostMap = new Dictionary<int, int> { [startHexId] = 0 };
 
-            // 優先度キュー（f値昇順）: (f, hexId)
             var open = new SortedSet<(int f, int id)>(Comparer<(int f, int id)>.Create(
                 (a, b) => a.f != b.f ? a.f.CompareTo(b.f) : a.id.CompareTo(b.id)));
             open.Add((Heuristic(map.GetHexById(startHexId)!, target), startHexId));
@@ -40,46 +47,52 @@ namespace BattleCore.Navigation
                 open.Remove(open.Min);
 
                 if (current == targetHexId)
-                    return BuildPath(previous, targetHexId);
+                    return BuildPathResult(previous, stepCostMap, targetHexId);
 
                 foreach (var neighbor in map.GetNeighbors(current))
                 {
-                    // Mountain は目的地でない限り通過不可
                     if (neighbor.Terrain == TerrainType.Mountain && neighbor.Id != targetHexId)
                         continue;
 
-                    int newG = gCost[current] + TerrainCost(neighbor.Terrain);
+                    int step = TerrainCost(neighbor.Terrain);
+                    int newG = gCost[current] + step;
 
                     if (gCost.TryGetValue(neighbor.Id, out int existingG) && newG >= existingG)
                         continue;
 
-                    gCost[neighbor.Id] = newG;
+                    gCost[neighbor.Id]    = newG;
                     previous[neighbor.Id] = current;
+                    stepCostMap[neighbor.Id] = step;
                     int f = newG + Heuristic(neighbor, target);
                     open.Add((f, neighbor.Id));
                 }
             }
 
-            return new List<int>();
+            return PathResult.Empty;
         }
 
         /// <summary>ヘックス距離をヒューリスティックとして使用する。</summary>
         private static int Heuristic(Hex a, Hex b) => HexDistance.Calculate(a, b);
 
-        private static List<int> BuildPath(Dictionary<int, int?> previous, int target)
+        private static PathResult BuildPathResult(
+            Dictionary<int, int?> previous,
+            Dictionary<int, int>  stepCostMap,
+            int target)
         {
-            var path = new List<int>();
-            if (!previous.ContainsKey(target)) return path;
+            var hexIds    = new List<int>();
+            var stepCosts = new List<int>();
+            if (!previous.ContainsKey(target)) return PathResult.Empty;
 
             int? current = target;
             while (current != null)
             {
-                path.Add(current.Value);
+                hexIds.Add(current.Value);
+                stepCosts.Add(stepCostMap.GetValueOrDefault(current.Value, 0));
                 current = previous[current.Value];
             }
-
-            path.Reverse();
-            return path;
+            hexIds.Reverse();
+            stepCosts.Reverse();
+            return new PathResult(hexIds, stepCosts);
         }
     }
 }

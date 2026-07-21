@@ -80,10 +80,19 @@ namespace BattleCore.Debug
             lines.Add(new("--- Path (A*) ---", DebugColor.Info));
             if (army.DestinationHexId.HasValue && army.DestinationHexId.Value != army.CurrentHexId)
             {
-                var path = new HexPathFinder().FindPath(world.Map, army.CurrentHexId, army.DestinationHexId.Value);
-                lines.Add(path.Count > 0
-                    ? new("  " + string.Join("→", path), DebugColor.Path)
-                    : new("  (経路なし)", DebugColor.Dim));
+                var result = new HexPathFinder().FindPathWithCost(
+                    world.Map, army.CurrentHexId, army.DestinationHexId.Value);
+                if (result.HexIds.Count > 0)
+                {
+                    lines.Add(new("  " + string.Join("→", result.HexIds), DebugColor.Path));
+                    var costParts = result.HexIds
+                        .Zip(result.StepCosts, (h, c) => c > 0 ? $"{h}({c})" : $"{h}")
+                        .ToList();
+                    lines.Add(new("  " + string.Join("→", costParts), DebugColor.Dim));
+                    lines.Add(new($"  Total Cost: {result.TotalCost}", DebugColor.Dim));
+                }
+                else
+                    lines.Add(new("  (経路なし)", DebugColor.Dim));
             }
             else
             {
