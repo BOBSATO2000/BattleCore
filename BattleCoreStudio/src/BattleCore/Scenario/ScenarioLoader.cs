@@ -69,8 +69,7 @@ namespace BattleCore.Scenario
             foreach (var a in data.Armies)
             {
                 var army = new Army(a.Id, 0, a.ClanId, a.CurrentHexId);
-                if (a.Soldiers < 1000) army.LoseSoldiers(1000 - a.Soldiers);
-                else if (a.Soldiers > 1000) army.Reinforce(a.Soldiers - 1000);
+                army.SetInitialSoldiers(Math.Max(0, a.Soldiers));
                 if (a.OfficerId.HasValue) army.AssignOfficer(a.OfficerId.Value);
                 world.Armies.Add(army);
             }

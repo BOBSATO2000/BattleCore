@@ -27,7 +27,9 @@ namespace BattleCore.Tests
         public void OccupyingArmy_GetsReinforcement()
         {
             var (world, army, castle) = Setup(armyClanId: 1, castleOwnerClanId: 1);
-            var initialSoldiers = army.Soldiers;
+            // MaxSoldiers=1000のまま、兵力を900に減らして補充をテスト
+            army.LoseSoldiers(100);
+            var initialSoldiers = army.Soldiers; // 900
 
             var engine = new SimulationEngine(world);
             engine.RegisterSystem(new CastleSystem());

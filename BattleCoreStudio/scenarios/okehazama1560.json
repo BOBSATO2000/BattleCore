@@ -75,12 +75,12 @@
   ],
   "alliances": [],
   "castles": [
-    { "id": 1, "name": "清洲城",   "hexId":  1, "ownerClanId": 1, "reinforcementPerTick": 80 },
-    { "id": 2, "name": "小牧山城", "hexId":  6, "ownerClanId": 1, "reinforcementPerTick": 50 },
-    { "id": 3, "name": "鳴海城",   "hexId": 14, "ownerClanId": 2, "reinforcementPerTick": 60 },
-    { "id": 4, "name": "大高城",   "hexId": 20, "ownerClanId": 2, "reinforcementPerTick": 60 },
-    { "id": 5, "name": "駿府城",   "hexId": 28, "ownerClanId": 2, "reinforcementPerTick": 80 },
-    { "id": 6, "name": "岡崎城",   "hexId": 25, "ownerClanId": 3, "reinforcementPerTick": 60 }
+    { "id": 1, "name": "清洲城",   "hexId":  1, "ownerClanId": 1, "reinforcementPerTick": 20 },
+    { "id": 2, "name": "小牧山城", "hexId":  6, "ownerClanId": 1, "reinforcementPerTick": 10 },
+    { "id": 3, "name": "鳴海城",   "hexId": 14, "ownerClanId": 2, "reinforcementPerTick": 15 },
+    { "id": 4, "name": "大高城",   "hexId": 20, "ownerClanId": 2, "reinforcementPerTick": 15 },
+    { "id": 5, "name": "駿府城",   "hexId": 28, "ownerClanId": 2, "reinforcementPerTick": 20 },
+    { "id": 6, "name": "岡崎城",   "hexId": 25, "ownerClanId": 3, "reinforcementPerTick": 15 }
   ],
   "eventTriggers": [
     {

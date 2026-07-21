@@ -94,15 +94,25 @@ namespace BattleCore.Entities
         /// <summary>指揮官（Officer）を配属する。</summary>
         public void AssignOfficer(int officerId) => OfficerId = officerId;
 
+        /// <summary>兵力の上限。初期兵力を記録する。</summary>
+        public int MaxSoldiers { get; private set; } = 1000;
+
         /// <summary>
         /// 兵力を補充する。MaxSoldiersを超えない範囲で増加する。
-        /// SupplySystem から呼ばれる。
+        /// SupplySystem / CastleSystem から呼ばれる。
         /// </summary>
         public void Reinforce(int amount)
         {
             if (amount < 0)
                 throw new ArgumentOutOfRangeException(nameof(amount));
-            Soldiers += amount;
+            Soldiers = Math.Min(MaxSoldiers, Soldiers + amount);
+        }
+
+        /// <summary>初期兵力を設定する。ScenarioLoader から呼ばれる。</summary>
+        public void SetInitialSoldiers(int soldiers)
+        {
+            Soldiers    = soldiers;
+            MaxSoldiers = soldiers;
         }
 
         /// <summary>
