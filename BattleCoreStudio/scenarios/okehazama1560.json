@@ -35,28 +35,27 @@
   ],
   "clans": [
     { "id": 1, "name": "織田", "daimyoOfficerId": 1  },
-    { "id": 2, "name": "今川", "daimyoOfficerId": 101 },
-    { "id": 3, "name": "松平", "daimyoOfficerId": 201 }
+    { "id": 2, "name": "今川", "daimyoOfficerId": 101 }
   ],
   "officers": [
-    { "id":   1, "name": "信長",   "leadership": 150, "strategy": 120, "courage": 145, "ambition": 90, "loyalty": 80,  "intelligence": 130, "personality": "Brave"      },
-    { "id":   2, "name": "秀吉",   "leadership": 110, "strategy": 130, "courage":  90, "ambition": 85, "loyalty": 75,  "intelligence": 145, "personality": "Ambitious"  },
-    { "id":   3, "name": "勝家",   "leadership": 130, "strategy":  90, "courage": 130, "ambition": 40, "loyalty": 90,  "intelligence":  80, "personality": "Brave"      },
-    { "id":   4, "name": "光秀",   "leadership": 120, "strategy": 130, "courage": 100, "ambition": 90, "loyalty": 40,  "intelligence": 150, "personality": "Ambitious"  },
-    { "id": 101, "name": "義元",   "leadership": 140, "strategy": 140, "courage": 100, "ambition": 70, "loyalty": 95,  "intelligence": 130, "personality": "Cautious"   },
-    { "id": 102, "name": "氏真",   "leadership":  70, "strategy":  60, "courage":  60, "ambition": 30, "loyalty": 80,  "intelligence":  70, "personality": "Cautious"   },
-    { "id": 103, "name": "雪斎",   "leadership": 120, "strategy": 150, "courage":  80, "ambition": 20, "loyalty": 95,  "intelligence": 155, "personality": "Loyal"      },
-    { "id": 201, "name": "元康",   "leadership": 120, "strategy": 110, "courage": 120, "ambition": 60, "loyalty": 50,  "intelligence": 120, "personality": "Cautious"   }
+    { "id":   1, "name": "信長", "leadership": 150, "strategy": 120, "courage": 145, "ambition": 90, "loyalty": 80,  "intelligence": 130, "personality": "Brave"     },
+    { "id":   2, "name": "秀吉", "leadership": 110, "strategy": 130, "courage":  90, "ambition": 85, "loyalty": 75,  "intelligence": 145, "personality": "Ambitious" },
+    { "id":   3, "name": "勝家", "leadership": 130, "strategy":  90, "courage": 130, "ambition": 40, "loyalty": 90,  "intelligence":  80, "personality": "Brave"     },
+    { "id":   4, "name": "光秀", "leadership": 120, "strategy": 130, "courage": 100, "ambition": 90, "loyalty": 40,  "intelligence": 150, "personality": "Ambitious" },
+    { "id": 101, "name": "義元", "leadership": 140, "strategy": 140, "courage": 100, "ambition": 70, "loyalty": 95,  "intelligence": 130, "personality": "Cautious"  },
+    { "id": 102, "name": "氏真", "leadership":  70, "strategy":  60, "courage":  60, "ambition": 30, "loyalty": 80,  "intelligence":  70, "personality": "Cautious"  },
+    { "id": 103, "name": "雪斎", "leadership": 120, "strategy": 150, "courage":  80, "ambition": 20, "loyalty": 95,  "intelligence": 155, "personality": "Loyal"     },
+    { "id": 201, "name": "元康", "leadership": 120, "strategy": 110, "courage": 120, "ambition": 60, "loyalty": 50,  "intelligence": 120, "personality": "Cautious"  }
   ],
   "memberships": [
-    { "id":  1, "officerId":   1, "clanId": 1, "loyalty": 80 },
-    { "id":  2, "officerId":   2, "clanId": 1, "loyalty": 75 },
-    { "id":  3, "officerId":   3, "clanId": 1, "loyalty": 90 },
-    { "id":  4, "officerId":   4, "clanId": 1, "loyalty": 40 },
-    { "id":  5, "officerId": 101, "clanId": 2, "loyalty": 95 },
-    { "id":  6, "officerId": 102, "clanId": 2, "loyalty": 80 },
-    { "id":  7, "officerId": 103, "clanId": 2, "loyalty": 95 },
-    { "id":  8, "officerId": 201, "clanId": 3, "loyalty": 50 }
+    { "id": 1, "officerId":   1, "clanId": 1, "loyalty": 80 },
+    { "id": 2, "officerId":   2, "clanId": 1, "loyalty": 75 },
+    { "id": 3, "officerId":   3, "clanId": 1, "loyalty": 90 },
+    { "id": 4, "officerId":   4, "clanId": 1, "loyalty": 40 },
+    { "id": 5, "officerId": 101, "clanId": 2, "loyalty": 95 },
+    { "id": 6, "officerId": 102, "clanId": 2, "loyalty": 80 },
+    { "id": 7, "officerId": 103, "clanId": 2, "loyalty": 95 },
+    { "id": 8, "officerId": 201, "clanId": 2, "loyalty": 50 }
   ],
   "armies": [
     { "id": 1, "clanId": 1, "currentHexId":  1, "soldiers":  500, "officerId":   1 },
@@ -66,23 +65,21 @@
     { "id": 5, "clanId": 2, "currentHexId": 28, "soldiers": 1800, "officerId": 101 },
     { "id": 6, "clanId": 2, "currentHexId": 27, "soldiers":  800, "officerId": 103 },
     { "id": 7, "clanId": 2, "currentHexId": 30, "soldiers":  600, "officerId": 102 },
-    { "id": 8, "clanId": 3, "currentHexId": 25, "soldiers":  600, "officerId": 201 }
+    { "id": 8, "clanId": 2, "currentHexId": 25, "soldiers":  600, "officerId": 201 }
   ],
   "relationships": [
     { "id": 1, "fromOfficerId":   4, "toOfficerId":   1, "trust":  0, "respect": 20, "dislike": 60 },
     { "id": 2, "fromOfficerId":   2, "toOfficerId":   1, "trust": 70, "respect": 80, "dislike":  0 },
     { "id": 3, "fromOfficerId": 201, "toOfficerId": 101, "trust": 20, "respect": 40, "dislike": 30 }
   ],
-  "alliances": [
-    { "id": 1, "clanId1": 2, "clanId2": 3, "durationTicks": 999 }
-  ],
+  "alliances": [],
   "castles": [
     { "id": 1, "name": "清洲城",   "hexId":  1, "ownerClanId": 1, "reinforcementPerTick": 20 },
     { "id": 2, "name": "小牧山城", "hexId":  6, "ownerClanId": 1, "reinforcementPerTick": 10 },
     { "id": 3, "name": "鳴海城",   "hexId": 14, "ownerClanId": 2, "reinforcementPerTick": 15 },
     { "id": 4, "name": "大高城",   "hexId": 20, "ownerClanId": 2, "reinforcementPerTick": 15 },
     { "id": 5, "name": "駿府城",   "hexId": 28, "ownerClanId": 2, "reinforcementPerTick": 20 },
-    { "id": 6, "name": "岡崎城",   "hexId": 25, "ownerClanId": 3, "reinforcementPerTick": 15 }
+    { "id": 6, "name": "岡崎城",   "hexId": 25, "ownerClanId": 2, "reinforcementPerTick": 15 }
   ],
   "eventTriggers": [
     {
@@ -109,7 +106,7 @@
       "id": "motoyasu_watches",
       "minTick": 5,
       "officerId": 201,
-      "message": "【元康の決断】松平元康は今川と織田の戦いを静観している。どちらが勝つかで運命が変わる。"
+      "message": "【元康の決断】元康は今川と織田の戦いを静観している。どちらが勝つかで運命が変わる。"
     },
     {
       "id": "mitsuhide_ambition",
