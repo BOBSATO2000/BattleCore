@@ -427,6 +427,12 @@ namespace BattleCoreStudio
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] {officer?.Name ?? "?"} が {clan?.Name ?? "?"} に仕官！");
                 }
+                else if (ev is BattleCore.Events.DecisionExplanationEvent de)
+                {
+                    var factors = string.Join(" / ", de.Factors.Where(f => !string.IsNullOrEmpty(f)));
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] 🧠 {de.OfficerName}「{de.Summary}」 {factors}");
+                }
                 else if (ev is ScenarioEvent se)
                 {
                     lstEvents.Items.Insert(0,
@@ -662,7 +668,8 @@ namespace BattleCoreStudio
                 var s when s.Contains("占領")                    => Color.FromArgb(255, 200,  80), // 城占領=黄
                 var s when s.Contains("拒否") || s.Contains("進言") => Color.FromArgb(255, 220,  60), // 武将=黄
                 var s when s.Contains("離反") || s.Contains("仕官") => Color.FromArgb(255, 160,  40), // 離反=橙
-                var s when s.Contains("「」") || s.Contains("『』") => Color.FromArgb(100, 220, 255), // シナリオ=水色
+                var s when s.Contains("🧠")                        => Color.FromArgb(180, 140, 255), // AI判断=紫
+                var s when s.Contains("「") || s.Contains("『")        => Color.FromArgb(100, 220, 255), // シナリオ=水色
                 var s when s.Contains("到着")                    => Color.FromArgb(160, 220, 160), // 移動=緑
                 var s when s.Contains("補充")                    => Color.FromArgb(180, 255, 180), // 補給=淡緑
                 var s when s.Contains("セーブ") || s.Contains("ロード") => Color.FromArgb(180, 180, 255), // 保存=紫

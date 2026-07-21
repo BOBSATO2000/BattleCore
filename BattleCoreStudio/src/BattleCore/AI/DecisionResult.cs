@@ -18,15 +18,19 @@ namespace BattleCore.AI
         /// <summary>この判断に伴って発生するイベント。null の場合はイベントなし。</summary>
         public IGameEvent? Event { get; init; }
 
+        /// <summary>判断の詳細説明（デバッグ・UI表示用）。</summary>
+        public DecisionExplanation? Explanation { get; init; }
+
         /// <summary>命令受諾（通常・変更含む）の結果を生成する。</summary>
         public static DecisionResult Accept(
             Commands.ICommand command,
             Commands.DecisionReason reason = Commands.DecisionReason.Advance,
-            IGameEvent? ev = null)
-            => new() { Command = command, Reason = reason, Accepted = true, Event = ev };
+            IGameEvent? ev = null,
+            DecisionExplanation? explanation = null)
+            => new() { Command = command, Reason = reason, Accepted = true, Event = ev, Explanation = explanation };
 
         /// <summary>命令拒否の結果を生成する。</summary>
-        public static DecisionResult Refuse(IGameEvent? ev = null)
-            => new() { Command = null, Reason = Commands.DecisionReason.Advance, Accepted = false, Event = ev };
+        public static DecisionResult Refuse(IGameEvent? ev = null, DecisionExplanation? explanation = null)
+            => new() { Command = null, Reason = Commands.DecisionReason.Advance, Accepted = false, Event = ev, Explanation = explanation };
     }
 }

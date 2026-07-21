@@ -78,7 +78,11 @@ namespace BattleCore.AI
                     && officer.Personality != OfficerPersonality.Loyal)
                 {
                     yield return DecisionResult.Refuse(
-                        new OfficerRefusedOrderEvent(officer.Id, officer.Name, "忠誠が低く命令を拒否した"));
+                        new OfficerRefusedOrderEvent(officer.Id, officer.Name, "忠誠が低く命令を拒否した"),
+                        DecisionExplanation.Create(DecisionReason.Advance, "命令拒否",
+                            $"忠誠:{loyalty}",
+                            $"性格:{officer.Personality}",
+                            $"兵力:{army.Soldiers}"));
                     continue;
                 }
 
@@ -92,7 +96,11 @@ namespace BattleCore.AI
                         yield return DecisionResult.Accept(
                             new MoveArmyCommand(army.Id, retreatTarget.Value, DecisionReason.CautiousRetreat),
                             DecisionReason.CautiousRetreat,
-                            new OfficerRequestedRetreatEvent(officer.Id, officer.Name, army.Soldiers));
+                            new OfficerRequestedRetreatEvent(officer.Id, officer.Name, army.Soldiers),
+                            DecisionExplanation.Create(DecisionReason.CautiousRetreat, "撤退進言",
+                                $"兵力:{army.Soldiers}（閾値:{CautiousRetreatSoldiers}）",
+                                $"性格:慎重",
+                                $"忠誠:{loyalty}"));
                         continue;
                     }
                 }
@@ -106,7 +114,11 @@ namespace BattleCore.AI
                     {
                         yield return DecisionResult.Accept(
                             new MoveArmyCommand(army.Id, independentTarget.Value, DecisionReason.IndependentAction),
-                            DecisionReason.IndependentAction);
+                            DecisionReason.IndependentAction,
+                            explanation: DecisionExplanation.Create(DecisionReason.IndependentAction, "独断行動",
+                                $"性格:野心的",
+                                $"忠誠:{loyalty}（閾値:{IndependentActionLoyalty}）",
+                                $"兵力:{army.Soldiers}"));
                         continue;
                     }
                 }
@@ -117,15 +129,37 @@ namespace BattleCore.AI
                     var retreatTarget = GetRetreatTarget(army, clan, world);
                     if (retreatTarget.HasValue && retreatTarget.Value != army.CurrentHexId)
                     {
+                        var daimyo = clan.DaimyoOfficerId.HasValue
+                            ? world.Officers.FirstOrDefault(o => o.Id == clan.DaimyoOfficerId.Value)
+                            : null;
+                        var rel = clan.DaimyoOfficerId.HasValue
+                            ? world.Relationships.FirstOrDefault(r =>
+                                r.FromOfficerId == officer.Id && r.ToOfficerId == clan.DaimyoOfficerId.Value)
+                            : null;
                         yield return DecisionResult.Accept(
                             new MoveArmyCommand(army.Id, retreatTarget.Value, DecisionReason.Dissatisfied),
-                            DecisionReason.Dissatisfied);
+                            DecisionReason.Dissatisfied,
+                            explanation: DecisionExplanation.Create(DecisionReason.Dissatisfied, "不満による命令変更",
+                                $"主君:{daimyo?.Name ?? "?"} への反感:{rel?.Dislike ?? 0}（閾値:{DissatisfiedDislikeThreshold}）",
+                                $"忠誠:{loyalty}",
+                                $"兵力:{army.Soldiers}"));
                         continue;
                     }
                 }
 
                 // ⑤ 通常
-                yield return DecisionResult.Accept(cmd, move.Reason);
+                var enemyArmies = world.Armies
+                    .Where(a => a.ClanId != clan.Id && a.Soldiers > 0)
+                    .OrderBy(a => Map.HexDistance.Calculate(
+                        world.Map.GetHexById(army.CurrentHexId)!,
+                        world.Map.GetHexById(a.CurrentHexId)!))
+                    .FirstOrDefault();
+                yield return DecisionResult.Accept(cmd, move.Reason,
+                    explanation: DecisionExplanation.Create(move.Reason, ReasonSummary(move.Reason),
+                        $"兵力:{army.Soldiers}",
+                        $"忠誠:{loyalty}",
+                        $"性格:{officer.Personality}",
+                        enemyArmies != null ? $"最近敵兵力:{enemyArmies.Soldiers}" : "敵なし"));
             }
         }
 
@@ -144,6 +178,18 @@ namespace BattleCore.AI
         }
 
         // ── ヘルパー ─────────────────────────────────────────────
+
+        private static string ReasonSummary(DecisionReason reason) => reason switch
+        {
+            DecisionReason.Advance          => "進軍",
+            DecisionReason.TargetCastle     => "敵城攻略",
+            DecisionReason.Retreat          => "撤退",
+            DecisionReason.Reinforce        => "友軍救援",
+            DecisionReason.CautiousRetreat  => "慎重撤退",
+            DecisionReason.IndependentAction => "独断行動",
+            DecisionReason.Dissatisfied     => "不満撤退",
+            _                               => "不明",
+        };
 
         private int? GetRetreatTarget(Entities.Army army, Clan clan, WorldState world)
         {

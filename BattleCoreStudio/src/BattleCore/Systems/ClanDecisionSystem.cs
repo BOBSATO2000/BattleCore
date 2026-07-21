@@ -45,6 +45,23 @@ namespace BattleCore.Systems
                         context.CommandQueue.Enqueue(result.Command);
                     if (result.Event != null)
                         context.EventQueue.Enqueue(result.Event);
+
+                    // AI判断説明をイベントログへ
+                    if (result.Explanation != null && result.Command is BattleCore.Commands.MoveArmyCommand move)
+                    {
+                        var army    = context.World.GetArmyById(move.ArmyId);
+                        var officer = army?.OfficerId.HasValue == true
+                            ? context.World.Officers.FirstOrDefault(o => o.Id == army.OfficerId!.Value)
+                            : null;
+                        if (officer != null)
+                            context.EventQueue.Enqueue(new BattleCore.Events.DecisionExplanationEvent
+                            {
+                                OfficerId   = officer.Id,
+                                OfficerName = officer.Name,
+                                Summary     = result.Explanation.Summary,
+                                Factors     = result.Explanation.Factors,
+                            });
+                    }
                 }
             }
         }
