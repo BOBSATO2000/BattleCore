@@ -84,7 +84,7 @@ namespace BattleCoreStudio
             eng.Register(new RecruitmentSystem());
             eng.Register(new SupplySystem());
             eng.Register(new RelationshipSystem());
-            eng.Register(new DiplomacySystem());
+            eng.Register(new DiplomacySystem(autoAllianceInterval: 0));
             eng.Register(new EventTriggerSystem(
                 triggers ?? new System.Collections.Generic.List<BattleCore.Scenario.EventTriggerData>()));
             eng.Register(new VictorySystem());

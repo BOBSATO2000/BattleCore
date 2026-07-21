@@ -280,7 +280,7 @@ namespace BattleCoreStudio
             eng.Register(new RecruitmentSystem());
             eng.Register(new SupplySystem());
             eng.Register(new RelationshipSystem());
-            eng.Register(new DiplomacySystem());
+            eng.Register(new DiplomacySystem(autoAllianceInterval: 0));
             eng.Register(new EventTriggerSystem(triggers));
             eng.Register(new VictorySystem());
             return eng;
