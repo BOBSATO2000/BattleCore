@@ -11,7 +11,7 @@ namespace BattleCore.AI
     /// <summary>
     /// 武将単位の意思決定フィルタ。
     /// ClanStrategy が生成した MoveArmyCommand を受け取り、
-    /// 武将の性格・忠誠・人間関係に基づいて命令を変更・拒否・独断行動に変える。
+    /// 武将の性格・忠誠・人間関係に基づいて DecisionResult を返す。
     ///
     /// 判断フロー:
     ///   1. 忠誠が極めて低い → 命令拒否（OfficerRefusedOrderEvent）
@@ -24,16 +24,9 @@ namespace BattleCore.AI
     {
         private readonly IPathFinder pathFinder = new HexPathFinder();
 
-        /// <summary>命令拒否が起きる忠誠の上限値。</summary>
-        public int RefusalLoyaltyThreshold { get; }
-
-        /// <summary>慎重性格が撤退進言する兵力の上限値。</summary>
-        public int CautiousRetreatSoldiers { get; }
-
-        /// <summary>野心的独断行動が起きる忠誠の上限値。</summary>
-        public int IndependentActionLoyalty { get; }
-
-        /// <summary>主君への不満で命令変更が起きる Dislike の下限値。</summary>
+        public int RefusalLoyaltyThreshold      { get; }
+        public int CautiousRetreatSoldiers      { get; }
+        public int IndependentActionLoyalty     { get; }
         public int DissatisfiedDislikeThreshold { get; }
 
         public OfficerDecision(
@@ -49,22 +42,19 @@ namespace BattleCore.AI
         }
 
         /// <summary>
-        /// 元の命令リストを武将の意思でフィルタリングし、
-        /// 変更後の命令リストとイベントリストを返す。
+        /// 元の命令リストを武将の意思で評価し、DecisionResult のリストを返す。
+        /// 各結果は Command（null=拒否）・Reason・Accepted・Event を持つ。
         /// </summary>
-        public (List<ICommand> commands, List<IGameEvent> events) Filter(
+        public IEnumerable<DecisionResult> Evaluate(
             IEnumerable<ICommand> originalCommands,
             Clan clan,
             WorldState world)
         {
-            var resultCommands = new List<ICommand>();
-            var resultEvents   = new List<IGameEvent>();
-
             foreach (var cmd in originalCommands)
             {
                 if (cmd is not MoveArmyCommand move)
                 {
-                    resultCommands.Add(cmd);
+                    yield return DecisionResult.Accept(cmd);
                     continue;
                 }
 
@@ -73,10 +63,9 @@ namespace BattleCore.AI
                     ? world.Officers.FirstOrDefault(o => o.Id == army.OfficerId!.Value)
                     : null;
 
-                // 指揮官なし → そのまま通す
                 if (officer == null || army == null)
                 {
-                    resultCommands.Add(cmd);
+                    yield return DecisionResult.Accept(cmd);
                     continue;
                 }
 
@@ -88,9 +77,9 @@ namespace BattleCore.AI
                 if (loyalty <= RefusalLoyaltyThreshold
                     && officer.Personality != OfficerPersonality.Loyal)
                 {
-                    resultEvents.Add(new OfficerRefusedOrderEvent(
-                        officer.Id, officer.Name, "忠誠が低く命令を拒否した"));
-                    continue; // 命令を破棄
+                    yield return DecisionResult.Refuse(
+                        new OfficerRefusedOrderEvent(officer.Id, officer.Name, "忠誠が低く命令を拒否した"));
+                    continue;
                 }
 
                 // ② 慎重な性格 + 兵力不足 → 撤退進言
@@ -100,66 +89,71 @@ namespace BattleCore.AI
                     var retreatTarget = GetRetreatTarget(army, clan, world);
                     if (retreatTarget.HasValue && retreatTarget.Value != army.CurrentHexId)
                     {
-                        resultEvents.Add(new OfficerRequestedRetreatEvent(
-                            officer.Id, officer.Name, army.Soldiers));
-                        resultCommands.Add(new MoveArmyCommand(
-                            army.Id, retreatTarget.Value, DecisionReason.CautiousRetreat));
+                        yield return DecisionResult.Accept(
+                            new MoveArmyCommand(army.Id, retreatTarget.Value, DecisionReason.CautiousRetreat),
+                            DecisionReason.CautiousRetreat,
+                            new OfficerRequestedRetreatEvent(officer.Id, officer.Name, army.Soldiers));
                         continue;
                     }
                 }
 
-                // ③ 野心的 + 低忠誠 → 独断行動（最も近い敵城へ）
+                // ③ 野心的 + 低忠誠 → 独断行動
                 if (officer.Personality == OfficerPersonality.Ambitious
                     && loyalty <= IndependentActionLoyalty)
                 {
                     var independentTarget = GetIndependentTarget(army, clan, world);
                     if (independentTarget.HasValue)
                     {
-                        resultCommands.Add(new MoveArmyCommand(
-                            army.Id, independentTarget.Value, DecisionReason.IndependentAction));
+                        yield return DecisionResult.Accept(
+                            new MoveArmyCommand(army.Id, independentTarget.Value, DecisionReason.IndependentAction),
+                            DecisionReason.IndependentAction);
                         continue;
                     }
                 }
 
-                // ④ 主君への不満（Dislike高）→ 命令変更（撤退）
+                // ④ 主君への不満 → 命令変更（撤退）
                 if (IsDissatisfied(officer, clan, world))
                 {
                     var retreatTarget = GetRetreatTarget(army, clan, world);
                     if (retreatTarget.HasValue && retreatTarget.Value != army.CurrentHexId)
                     {
-                        resultCommands.Add(new MoveArmyCommand(
-                            army.Id, retreatTarget.Value, DecisionReason.Dissatisfied));
+                        yield return DecisionResult.Accept(
+                            new MoveArmyCommand(army.Id, retreatTarget.Value, DecisionReason.Dissatisfied),
+                            DecisionReason.Dissatisfied);
                         continue;
                     }
                 }
 
-                // ⑤ 通常 → 元の命令をそのまま通す
-                resultCommands.Add(cmd);
+                // ⑤ 通常
+                yield return DecisionResult.Accept(cmd, move.Reason);
             }
+        }
 
-            return (resultCommands, resultEvents);
+        // ── 後方互換用ラッパー（既存テストが Filter() を呼ぶため残す）──────────
+        public (List<ICommand> commands, List<IGameEvent> events) Filter(
+            IEnumerable<ICommand> originalCommands, Clan clan, WorldState world)
+        {
+            var cmds   = new List<ICommand>();
+            var events = new List<IGameEvent>();
+            foreach (var r in Evaluate(originalCommands, clan, world))
+            {
+                if (r.Accepted && r.Command != null) cmds.Add(r.Command);
+                if (r.Event != null) events.Add(r.Event);
+            }
+            return (cmds, events);
         }
 
         // ── ヘルパー ─────────────────────────────────────────────
 
         private int? GetRetreatTarget(Entities.Army army, Clan clan, WorldState world)
         {
-            var myCastles = world.Castles
+            var currentHex = world.Map.GetHexById(army.CurrentHexId);
+            if (currentHex == null) return null;
+
+            return world.Castles
                 .Where(c => c.OwnerClanId == clan.Id)
-                .ToList();
-
-            if (myCastles.Any())
-            {
-                var currentHex = world.Map.GetHexById(army.CurrentHexId);
-                if (currentHex == null) return null;
-
-                return myCastles
-                    .OrderBy(c => Map.HexDistance.Calculate(
-                        currentHex, world.Map.GetHexById(c.HexId)!))
-                    .First().HexId;
-            }
-
-            return null;
+                .OrderBy(c => Map.HexDistance.Calculate(currentHex, world.Map.GetHexById(c.HexId)!))
+                .FirstOrDefault()?.HexId;
         }
 
         private int? GetIndependentTarget(Entities.Army army, Clan clan, WorldState world)
@@ -167,34 +161,21 @@ namespace BattleCore.AI
             var currentHex = world.Map.GetHexById(army.CurrentHexId);
             if (currentHex == null) return null;
 
-            // 最も近い敵城（自勢力以外）を独断で狙う
             var target = world.Castles
                 .Where(c => c.OwnerClanId != clan.Id)
-                .Select(c => new
-                {
-                    c.HexId,
-                    Dist = Map.HexDistance.Calculate(currentHex, world.Map.GetHexById(c.HexId)!)
-                })
-                .OrderBy(x => x.Dist)
+                .OrderBy(c => Map.HexDistance.Calculate(currentHex, world.Map.GetHexById(c.HexId)!))
                 .FirstOrDefault();
 
             if (target == null) return null;
-
             var path = pathFinder.FindPath(world.Map, army.CurrentHexId, target.HexId);
             return path.Count > 1 ? path[1] : null;
         }
 
         private bool IsDissatisfied(Entities.Officer officer, Clan clan, WorldState world)
         {
-            // 主君（DaimyoOfficerId）への Dislike が閾値以上
-            var daimyoId = clan.DaimyoOfficerId;
-            if (!daimyoId.HasValue) return false;
-
-            var rel = world.Relationships
-                .FirstOrDefault(r =>
-                    r.FromOfficerId == officer.Id &&
-                    r.ToOfficerId   == daimyoId.Value);
-
+            if (!clan.DaimyoOfficerId.HasValue) return false;
+            var rel = world.Relationships.FirstOrDefault(r =>
+                r.FromOfficerId == officer.Id && r.ToOfficerId == clan.DaimyoOfficerId.Value);
             return rel != null && rel.Dislike >= DissatisfiedDislikeThreshold;
         }
     }

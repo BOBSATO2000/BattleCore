@@ -58,6 +58,9 @@ namespace BattleCore.Scenario
                     Loyalty      = o.Loyalty,
                     Intelligence = o.Intelligence,
                     Ambition     = o.Ambition,
+                    Personality  = string.IsNullOrEmpty(o.Personality)
+                        ? OfficerPersonality.Loyal
+                        : System.Enum.Parse<OfficerPersonality>(o.Personality, ignoreCase: true),
                 });
 
             foreach (var m in data.Memberships)

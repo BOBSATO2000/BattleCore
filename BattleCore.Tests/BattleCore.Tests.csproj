@@ -11,4 +11,11 @@
     <ProjectReference Include="..\BattleCoreStudio\src\BattleCore\BattleCore.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <Content Include="..\BattleCoreStudio\scenarios\**\*.json">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Link>scenarios\%(RecursiveDir)%(Filename)%(Extension)</Link>
+    </Content>
+  </ItemGroup>
+
 </Project>

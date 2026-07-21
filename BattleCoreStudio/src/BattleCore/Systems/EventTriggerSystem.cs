@@ -47,6 +47,19 @@ namespace BattleCore.Systems
 
                     if (t.MaxLoyalty.HasValue && officer.Loyalty > t.MaxLoyalty.Value)
                         continue;
+
+                    // 隣接条件: 指定武将の軍が別の武将の軍と隣接Hexにいるか
+                    if (t.AdjacentToOfficerId.HasValue)
+                    {
+                        var armyA = world.Armies.FirstOrDefault(a => a.OfficerId == t.OfficerId.Value);
+                        var armyB = world.Armies.FirstOrDefault(a => a.OfficerId == t.AdjacentToOfficerId.Value);
+                        if (armyA == null || armyB == null) continue;
+
+                        var neighbors = world.Map.GetNeighbors(armyA.CurrentHexId);
+                        bool adjacent = armyA.CurrentHexId == armyB.CurrentHexId
+                            || neighbors.Any(h => h.Id == armyB.CurrentHexId);
+                        if (!adjacent) continue;
+                    }
                 }
 
                 fired.Add(t.Id);

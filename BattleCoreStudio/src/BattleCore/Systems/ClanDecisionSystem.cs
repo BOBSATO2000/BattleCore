@@ -38,15 +38,14 @@ namespace BattleCore.Systems
                 // Layer 1: 勢力戦略
                 var rawCommands = strategy.Decide(clan, context.World);
 
-                // Layer 2: 武将意思決定フィルタ
-                var (filteredCommands, officerEvents) =
-                    officerDecision.Filter(rawCommands, clan, context.World);
-
-                foreach (var cmd in filteredCommands)
-                    context.CommandQueue.Enqueue(cmd);
-
-                foreach (var ev in officerEvents)
-                    context.EventQueue.Enqueue(ev);
+                // Layer 2: 武将意思決定（DecisionResult）
+                foreach (var result in officerDecision.Evaluate(rawCommands, clan, context.World))
+                {
+                    if (result.Accepted && result.Command != null)
+                        context.CommandQueue.Enqueue(result.Command);
+                    if (result.Event != null)
+                        context.EventQueue.Enqueue(result.Event);
+                }
             }
         }
     }

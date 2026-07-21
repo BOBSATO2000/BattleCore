@@ -34,10 +34,10 @@
     { "id": 3, "name": "上杉" }
   ],
   "officers": [
-    { "id": 1, "name": "信長",  "leadership": 150, "strategy": 120, "courage": 130, "ambition": 70, "loyalty": 80,  "intelligence": 130 },
-    { "id": 2, "name": "信玄",  "leadership": 140, "strategy": 150, "courage": 110, "ambition": 50, "loyalty": 90,  "intelligence": 140 },
-    { "id": 3, "name": "謙信",  "leadership": 145, "strategy": 140, "courage": 140, "ambition": 30, "loyalty": 95,  "intelligence": 120 },
-    { "id": 4, "name": "光秀",  "leadership": 120, "strategy": 130, "courage": 100, "ambition": 90, "loyalty": 40,  "intelligence": 150 }
+    { "id": 1, "name": "信長",  "leadership": 150, "strategy": 120, "courage": 130, "ambition": 70, "loyalty": 80,  "intelligence": 130, "personality": "Brave"       },
+    { "id": 2, "name": "信玄",  "leadership": 140, "strategy": 150, "courage": 110, "ambition": 50, "loyalty": 90,  "intelligence": 140, "personality": "Cautious"    },
+    { "id": 3, "name": "謙信",  "leadership": 145, "strategy": 140, "courage": 140, "ambition": 30, "loyalty": 95,  "intelligence": 120, "personality": "Loyal"       },
+    { "id": 4, "name": "光秀",  "leadership": 120, "strategy": 130, "courage": 100, "ambition": 90, "loyalty": 40,  "intelligence": 150, "personality": "Ambitious"   }
   ],
   "memberships": [
     { "id": 1, "officerId": 1, "clanId": 1, "loyalty": 80 },
@@ -76,6 +76,13 @@
       "id": "early_battle",
       "minTick": 3,
       "message": "【第一次合戦】各勢力が動き始めた。天下の行方は如何に…"
+    },
+    {
+      "id": "mitsuhide_meets_nobunaga",
+      "minTick": 2,
+      "officerId": 4,
+      "adjacentToOfficerId": 1,
+      "message": "【信長・光秀導近】光秀の軍が信長の近くに追りついた。両者の緊張が高まる…"
     }
   ]
 }

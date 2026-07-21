@@ -97,6 +97,9 @@ namespace BattleCore.Scenario
 
         /// <summary>野心。</summary>
         public int Ambition     { get; set; } = 50;
+
+        /// <summary>性格。未指定の場合は Loyal として扱われる。</summary>
+        public string Personality { get; set; } = "";
     }
 
     /// <summary>武将と勢力の所属関係のDTO。</summary>
@@ -194,6 +197,11 @@ namespace BattleCore.Scenario
         public int?   OfficerId  { get; set; }
         public int?   MinDislike { get; set; }
         public int?   MaxLoyalty { get; set; }
+        /// <summary>
+        /// 条件: 指定武将の軍がこのOfficerIDの軍と隣接Hexにいる。
+        /// 例: 「信長と光秀が隣接したら発火」
+        /// </summary>
+        public int?   AdjacentToOfficerId { get; set; }
         public string Message    { get; set; } = "";
     }
 }
