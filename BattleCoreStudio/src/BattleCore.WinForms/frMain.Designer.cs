@@ -35,6 +35,8 @@ namespace BattleCoreStudio
             lstEvents     = new ListBox();
             lblArmies     = new Label();
             lblEvents     = new Label();
+            lblDebug      = new Label();
+            rtbDebug      = new RichTextBox();
 
             SuspendLayout();
 
@@ -161,8 +163,25 @@ namespace BattleCoreStudio
             lstEvents.ItemHeight  = 16;
             lstEvents.DrawItem   += lstEvents_DrawItem;
 
+            // lblDebug
+            lblDebug.Location  = new Point(800, 80);
+            lblDebug.Size      = new Size(280, 20);
+            lblDebug.Text      = "BattleCore Debug Console";
+            lblDebug.ForeColor = Color.FromArgb(180, 180, 255);
+            lblDebug.Font      = new Font("MS Gothic", 9f, FontStyle.Bold);
+
+            // rtbDebug
+            rtbDebug.Location  = new Point(800, 102);
+            rtbDebug.Size      = new Size(280, 478);
+            rtbDebug.BackColor = Color.FromArgb(15, 15, 30);
+            rtbDebug.ForeColor = Color.White;
+            rtbDebug.Font      = new Font("MS Gothic", 9f);
+            rtbDebug.ReadOnly  = true;
+            rtbDebug.BorderStyle = BorderStyle.FixedSingle;
+            rtbDebug.ScrollBars  = RichTextBoxScrollBars.Vertical;
+
             // frMain
-            ClientSize  = new Size(796, 592);
+            ClientSize  = new Size(1096, 592);
             MainMenuStrip = menuStrip;
             Text        = "BattleCoreStudio";
             Controls.AddRange(new Control[]
@@ -174,6 +193,7 @@ namespace BattleCoreStudio
                 lblClans, pnlClans,
                 lblArmies, lstArmies,
                 lblEvents, lstEvents,
+                lblDebug, rtbDebug,
             });
 
             ResumeLayout(false);
@@ -198,9 +218,11 @@ namespace BattleCoreStudio
         private Panel    pnlMap;
         private Panel    pnlClans;
         private Label    lblClans;
-        private ListBox  lstArmies;
-        private ListBox  lstEvents;
-        private Label    lblArmies;
-        private Label    lblEvents;
+        private ListBox     lstArmies;
+        private ListBox     lstEvents;
+        private Label       lblArmies;
+        private Label       lblEvents;
+        private Label       lblDebug;
+        private RichTextBox rtbDebug;
     }
 }

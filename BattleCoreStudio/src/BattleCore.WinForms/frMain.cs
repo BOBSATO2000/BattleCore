@@ -18,6 +18,8 @@ namespace BattleCoreStudio
 
         private string _scenarioId      = "";
         private string? _currentSavePath = null;
+        private int?   _selectedArmyId  = null;
+        private readonly Dictionary<int, (string Summary, IReadOnlyList<string> Factors)> _lastDecisions = new();
 
         private const string SaveFilter = "BattleCore Save (*.bcsave)|*.bcsave|All files (*.*)|*.*";
 
@@ -231,26 +233,19 @@ namespace BattleCoreStudio
             if (idx >= armies.Count) return;
 
             var army = armies[idx];
-            if (!army.OfficerId.HasValue) return;
+            _selectedArmyId = army.Id;
 
+            if (!army.OfficerId.HasValue) return;
             var officer = world.Officers.FirstOrDefault(o => o.Id == army.OfficerId.Value);
             if (officer == null) return;
 
-            var rels = world.Relationships
-                .Where(r => r.FromOfficerId == officer.Id)
-                .ToList();
-
+            var rels = world.Relationships.Where(r => r.FromOfficerId == officer.Id).ToList();
             lstEvents.Items.Insert(0, $"── {officer.Name} の関係値 ──");
-            if (!rels.Any())
-            {
-                lstEvents.Items.Insert(1, "  (関係なし)");
-                return;
-            }
+            if (!rels.Any()) { lstEvents.Items.Insert(1, "  (関係なし)"); return; }
             foreach (var rel in rels)
             {
                 var target = world.Officers.FirstOrDefault(o => o.Id == rel.ToOfficerId);
-                lstEvents.Items.Insert(1,
-                    $"  →{target?.Name ?? "?"}  T:{rel.Trust} R:{rel.Respect} D:{rel.Dislike}");
+                lstEvents.Items.Insert(1, $"  →{target?.Name ?? "?"}  T:{rel.Trust} R:{rel.Respect} D:{rel.Dislike}");
             }
         }
 
@@ -429,6 +424,12 @@ namespace BattleCoreStudio
                 }
                 else if (ev is BattleCore.Events.DecisionExplanationEvent de)
                 {
+                    // _lastDecisionsキャッシュ更新（部隊 IDが必要なので武将IDから引く）
+                    var deArmy = world.Armies.FirstOrDefault(a =>
+                        a.OfficerId.HasValue && a.OfficerId.Value == de.OfficerId);
+                    if (deArmy != null)
+                        _lastDecisions[deArmy.Id] = (de.Summary, de.Factors);
+
                     var factors = string.Join(" / ", de.Factors.Where(f => !string.IsNullOrEmpty(f)));
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] 🧠 {de.OfficerName}「{de.Summary}」 {factors}");
@@ -452,6 +453,54 @@ namespace BattleCoreStudio
             }
 
             pnlMap.Invalidate();
+            UpdateDebugPanel();
+        }
+
+        // -------------------------------------------------------
+        // デバッグコンソール更新（UpdateUI毎に呼ばれる）
+        // -------------------------------------------------------
+        private void UpdateDebugPanel()
+        {
+            // DecisionExplanationEventからキャッシュ更新は不要（EventQueueは既にUpdateUIで消費済み）
+            // _lastDecisionsはClanDecisionSystemのイベントをUpdateUIで受け取り更新する
+
+            if (_selectedArmyId == null)
+            {
+                rtbDebug.Clear();
+                AppendDebug("=== BattleCore Debug ===", Color.FromArgb(180, 180, 255));
+                AppendDebug($"Turn:{engine.Context.Time.Tick}  Phase:{engine.Context.CurrentPhase}", Color.Gray);
+                AppendDebug("");
+                AppendDebug("部隊を選択してください", Color.Gray);
+                return;
+            }
+
+            var lines = BattleCore.Debug.DebugPanelBuilder.Build(
+                _selectedArmyId.Value, world, engine.Context, _lastDecisions);
+
+            rtbDebug.Clear();
+            foreach (var line in lines)
+            {
+                var color = line.Color switch
+                {
+                    BattleCore.Debug.DebugPanelBuilder.DebugColor.Header => Color.FromArgb(180, 180, 255),
+                    BattleCore.Debug.DebugPanelBuilder.DebugColor.Info   => Color.FromArgb(100, 200, 255),
+                    BattleCore.Debug.DebugPanelBuilder.DebugColor.Good   => Color.FromArgb(100, 255, 150),
+                    BattleCore.Debug.DebugPanelBuilder.DebugColor.Warn   => Color.FromArgb(255, 180,  60),
+                    BattleCore.Debug.DebugPanelBuilder.DebugColor.Dim    => Color.FromArgb(140, 140, 140),
+                    BattleCore.Debug.DebugPanelBuilder.DebugColor.Path   => Color.FromArgb(255, 220, 100),
+                    BattleCore.Debug.DebugPanelBuilder.DebugColor.AI     => Color.FromArgb(200, 160, 255),
+                    _                                                     => Color.White,
+                };
+                AppendDebug(line.Text, color);
+            }
+        }
+
+        private void AppendDebug(string text, Color? color = null)
+        {
+            rtbDebug.SelectionStart  = rtbDebug.TextLength;
+            rtbDebug.SelectionLength = 0;
+            rtbDebug.SelectionColor  = color ?? Color.White;
+            rtbDebug.AppendText(text + "\n");
         }
 
         // -------------------------------------------------------
