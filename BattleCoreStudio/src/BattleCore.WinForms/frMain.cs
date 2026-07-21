@@ -82,7 +82,7 @@ namespace BattleCoreStudio
             eng.Register(new BattleSystem());
             eng.Register(new LoyaltySystem());
             eng.Register(new RecruitmentSystem());
-            eng.Register(new SupplySystem());
+            eng.Register(new SupplySystem(baseReplenishment: 20, springBonus: 10));
             eng.Register(new RelationshipSystem());
             eng.Register(new DiplomacySystem(autoAllianceInterval: 0));
             eng.Register(new EventTriggerSystem(
