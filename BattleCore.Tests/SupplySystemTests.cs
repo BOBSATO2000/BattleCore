@@ -62,9 +62,9 @@ namespace BattleCore.Tests
         }
 
         [TestMethod]
-        public void DestroyedArmyGraduallyRebuilds()
+        public void DestroyedArmyDoesNotRebuild()
         {
-            // 全滅した軍も少しずつ回復する
+            // 全滅した軍は補充しない
             var world = new WorldState();
             world.Map.AddHex(new Hex(1, 0, 0));
 
@@ -75,7 +75,7 @@ namespace BattleCore.Tests
             var context = new SimulationContext(world);
             new SupplySystem(baseReplenishment: 50, springBonus: 0).Update(context);
 
-            Assert.AreEqual(50, army.Soldiers);
+            Assert.AreEqual(0, army.Soldiers);
         }
 
         [TestMethod]

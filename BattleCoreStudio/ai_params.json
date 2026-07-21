@@ -1,6 +1,6 @@
 {
   "RefusalLoyaltyThreshold": 20,
-  "CautiousRetreatSoldiers": 300,
+  "CautiousRetreatSoldiers": 150,
   "IndependentActionLoyalty": 35,
   "DissatisfiedDislikeThreshold": 60
 }

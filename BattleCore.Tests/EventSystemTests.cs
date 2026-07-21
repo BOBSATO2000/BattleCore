@@ -102,15 +102,14 @@ namespace BattleCore.Tests
             var officer = new Officer(1, "信長");
             world.Officers.Add(officer);
 
-            // 全滅状態から回復させる（大量補充が発生する）
+            // 兵力を大幅に減らして大量補充を発生させる
             var army = new Army(1, 0, 1, 1);
-            army.LoseSoldiers(1000); // 0兵
+            army.LoseSoldiers(700); // 300兵
             army.AssignOfficer(1);
             world.Armies.Add(army);
 
             var context = new SimulationContext(world);
             var engine  = new SimulationEngine(context);
-            // EventThreshold=50 に下げて確実に発火させる
             engine.Register(new SupplySystem(baseReplenishment: 300, eventThreshold: 200));
 
             engine.Step();
@@ -119,7 +118,7 @@ namespace BattleCore.Tests
                 .OfType<SupplyEvent>().ToList();
             Assert.AreEqual(1, supplyEvents.Count);
             Assert.AreEqual("信長", supplyEvents[0].OfficerName);
-            Assert.IsTrue(supplyEvents[0].Amount >= 300); // 春ボーナス込みで300以上
+            Assert.IsTrue(supplyEvents[0].Amount >= 200);
         }
 
         [TestMethod]

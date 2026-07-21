@@ -47,11 +47,11 @@ namespace BattleCore.Systems
 
             foreach (var army in world.Armies)
             {
-                // 無所属は補充しない
-                if (army.ClanId == 0) continue;
+                // 無所属・全滅は補充しない
+                if (army.ClanId == 0 || army.Soldiers == 0) continue;
 
                 // 上限に達していたらスキップ
-                if (army.Soldiers >= MaxSoldiers) continue;
+                if (army.Soldiers >= army.MaxSoldiers) continue;
 
                 var amount = BaseReplenishment;
 
@@ -59,7 +59,7 @@ namespace BattleCore.Systems
                 if (context.Time.Season == Season.Spring)
                     amount += SpringBonus;
 
-                var newSoldiers = Math.Min(MaxSoldiers, army.Soldiers + amount);
+                var newSoldiers = Math.Min(army.MaxSoldiers, army.Soldiers + amount);
                 var gain        = newSoldiers - army.Soldiers;
 
                 if (gain > 0)
