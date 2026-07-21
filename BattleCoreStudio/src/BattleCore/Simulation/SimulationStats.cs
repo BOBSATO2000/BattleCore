@@ -28,26 +28,28 @@ namespace BattleCore.Simulation
         {
             TurnsExecuted++;
 
-            var events = new List<IGameEvent>();
             while (context.EventQueue.Count > 0)
-                events.Add(context.EventQueue.Dequeue());
-
-            foreach (var ev in events)
             {
                 TotalEvents++;
-                switch (ev)
+                switch (context.EventQueue.Dequeue())
                 {
-                    case ScenarioEvent se:          FiredEvents.Add(se.TriggerId); break;
-                    case BattleLogEvent:           BattleCount++;   break;
-                    case SupplyEvent:              SupplyCount++;   break;
-                    case BetrayalEvent:            BetrayalCount++; break;
+                    case ScenarioEvent se:
+                        FiredEvents.Add(se.TriggerId); break;
+                    case BattleLogEvent:
+                        BattleCount++; break;
+                    case SupplyEvent:
+                        SupplyCount++; break;
+                    case BetrayalEvent:
+                        BetrayalCount++; break;
                     case OfficerRefusedOrderEvent rf:
                         RefusalCount++;
-                        GetOrAdd(rf.OfficerId, rf.OfficerName, "").RefusalCount++;
+                        var o1 = context.World.Officers.FirstOrDefault(x => x.Id == rf.OfficerId);
+                        GetOrAdd(rf.OfficerId, rf.OfficerName, o1?.Personality.ToString() ?? "").RefusalCount++;
                         break;
                     case DecisionExplanationEvent de when de.Summary == "独断行動":
                         IndependentCount++;
-                        GetOrAdd(de.OfficerId, de.OfficerName, "").IndependentCount++;
+                        var o2 = context.World.Officers.FirstOrDefault(x => x.Id == de.OfficerId);
+                        GetOrAdd(de.OfficerId, de.OfficerName, o2?.Personality.ToString() ?? "").IndependentCount++;
                         break;
                     case GameOverEvent go:
                         WinnerClanId = go.WinnerClanId;
@@ -63,9 +65,6 @@ namespace BattleCore.Simulation
                 if (o != null)
                     GetOrAdd(o.Id, o.Name, o.Personality.ToString()).Survived = false;
             }
-
-            foreach (var ev in events)
-                context.EventQueue.Enqueue(ev);
         }
 
         private OfficerRunStats GetOrAdd(int id, string name, string personality)
