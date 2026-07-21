@@ -73,7 +73,9 @@
     { "id": 2, "fromOfficerId":   2, "toOfficerId":   1, "trust": 70, "respect": 80, "dislike":  0 },
     { "id": 3, "fromOfficerId": 201, "toOfficerId": 101, "trust": 20, "respect": 40, "dislike": 30 }
   ],
-  "alliances": [],
+  "alliances": [
+    { "id": 1, "clanId1": 2, "clanId2": 3, "durationTicks": 999 }
+  ],
   "castles": [
     { "id": 1, "name": "清洲城",   "hexId":  1, "ownerClanId": 1, "reinforcementPerTick": 20 },
     { "id": 2, "name": "小牧山城", "hexId":  6, "ownerClanId": 1, "reinforcementPerTick": 10 },
