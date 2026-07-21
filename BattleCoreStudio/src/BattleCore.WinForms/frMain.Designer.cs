@@ -154,9 +154,12 @@ namespace BattleCoreStudio
             lblEvents.Text     = "イベントログ";
 
             // lstEvents
-            lstEvents.Location = new Point(584, 430);
-            lstEvents.Size     = new Size(200, 150);
-            lstEvents.Font     = new Font("MS Gothic", 9f);
+            lstEvents.Location    = new Point(584, 430);
+            lstEvents.Size        = new Size(200, 150);
+            lstEvents.Font        = new Font("MS Gothic", 9f);
+            lstEvents.DrawMode    = DrawMode.OwnerDrawFixed;
+            lstEvents.ItemHeight  = 16;
+            lstEvents.DrawItem   += lstEvents_DrawItem;
 
             // frMain
             ClientSize  = new Size(796, 592);

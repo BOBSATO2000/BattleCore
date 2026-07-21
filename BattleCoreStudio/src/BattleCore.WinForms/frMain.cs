@@ -50,25 +50,37 @@ namespace BattleCoreStudio
             (world, var title, var triggers) = ScenarioLoader.Load(dlg.SelectedPath);
             Text = $"BattleCoreStudio - {title}";
 
-            // シナリオIDはファイル名（拡張子なし）
             _scenarioId      = Path.GetFileNameWithoutExtension(dlg.SelectedPath);
             _currentSavePath = null;
 
-            engine = new SimulationEngine(world);
-            engine.Register(new CastleSystem());
-            engine.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
-            engine.Register(new CommandExecutionSystem());
-            engine.Register(new MovementSystem());
-            engine.Register(new BattleSystem());
-            engine.Register(new LoyaltySystem());
-            engine.Register(new RecruitmentSystem());
-            engine.Register(new SupplySystem());
-            engine.Register(new RelationshipSystem());
-            engine.Register(new DiplomacySystem());
-            engine.Register(new EventTriggerSystem(triggers));
-            engine.Register(new VictorySystem());
+            engine = BuildEngine(new SimulationContext(world), triggers);
 
             UpdateUI();
+        }
+
+        /// <summary>
+        /// SimulationEngine を構築する。InitSimulation / LoadFromFile の共通処理。
+        /// </summary>
+        private static SimulationEngine BuildEngine(
+            SimulationContext context,
+            System.Collections.Generic.List<BattleCore.Scenario.EventTriggerData>? triggers = null)
+        {
+            var eng = new SimulationEngine(context);
+            eng.Register(new VisionSystem());
+            eng.Register(new CastleSystem());
+            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
+            eng.Register(new CommandExecutionSystem());
+            eng.Register(new MovementSystem());
+            eng.Register(new BattleSystem());
+            eng.Register(new LoyaltySystem());
+            eng.Register(new RecruitmentSystem());
+            eng.Register(new SupplySystem());
+            eng.Register(new RelationshipSystem());
+            eng.Register(new DiplomacySystem());
+            eng.Register(new EventTriggerSystem(
+                triggers ?? new System.Collections.Generic.List<BattleCore.Scenario.EventTriggerData>()));
+            eng.Register(new VictorySystem());
+            return eng;
         }
 
         // -------------------------------------------------------
@@ -189,20 +201,7 @@ namespace BattleCoreStudio
                 world            = context.World;
 
                 // SimulationEngineごと作り直す（安全）
-                engine = new SimulationEngine(context);
-                engine.Register(new VisionSystem());
-                engine.Register(new CastleSystem());
-                engine.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
-                engine.Register(new CommandExecutionSystem());
-                engine.Register(new MovementSystem());
-                engine.Register(new BattleSystem());
-                engine.Register(new LoyaltySystem());
-                engine.Register(new RecruitmentSystem());
-                engine.Register(new SupplySystem());
-                engine.Register(new RelationshipSystem());
-                engine.Register(new DiplomacySystem());
-                engine.Register(new EventTriggerSystem(new System.Collections.Generic.List<BattleCore.Scenario.EventTriggerData>()));
-                engine.Register(new VictorySystem());
+                engine = BuildEngine(context);
 
                 var meta = SaveSystem.LoadMetadata(path);
                 Text = $"BattleCoreStudio - {meta.ScenarioId} [Turn {meta.Turn} 読込]「{Path.GetFileName(path)}」";
@@ -283,11 +282,12 @@ namespace BattleCoreStudio
 
             var sb = new System.Text.StringBuilder();
             sb.AppendLine($"【{clan?.Name ?? "無所属"}】{officer.Name}");
+            sb.AppendLine($"性格: {PersonalityName(officer.Personality)}");
             sb.AppendLine();
             sb.AppendLine($"統率:{officer.Leadership,3}  戦術:{officer.Strategy,3}  武勇:{officer.Courage,3}");
             sb.AppendLine($"知略:{officer.Intelligence,3}  野心:{officer.Ambition,3}  忠誠:{officer.Loyalty,3}");
             sb.AppendLine();
-            sb.AppendLine($"兵力: {army.Soldiers} / 1000");
+            sb.AppendLine($"兵力: {army.Soldiers} / 1000  AP: {army.ActionPoints}/{BattleCore.Entities.Army.MaxActionPoints}");
             sb.AppendLine();
             sb.AppendLine(rels.Any() ? "関係値:" : "関係値: なし");
             rels.ForEach(l => sb.AppendLine(l));
@@ -308,7 +308,17 @@ namespace BattleCoreStudio
                 BattleCore.Simulation.Weather.Fog  => " 🌫霧",
                 _                                  => " ☀晴",
             };
-            lblStatus.Text = $"Tick: {t.Tick}  Year: {t.Year}  {SeasonName(t.Season)}{weatherText}";
+            var phaseText = engine.Context.CurrentPhase switch
+            {
+                TurnPhase.PlayerPhase => "[入力]",
+                TurnPhase.AIPhase     => "[AI]",
+                TurnPhase.Movement    => "[移動]",
+                TurnPhase.Battle      => "[戦闘]",
+                TurnPhase.Supply      => "[補給]",
+                TurnPhase.Victory     => "[勝利判定]",
+                _                     => "",
+            };
+            lblStatus.Text = $"Tick:{t.Tick}  {t.Year}年 {SeasonName(t.Season)}{weatherText}  {phaseText}";
 
             // 勢力概要パネル
             pnlClans.Controls.Clear();
@@ -627,5 +637,42 @@ namespace BattleCoreStudio
             BattleCore.Simulation.Season.Winter => "冬",
             _ => ""
         };
+
+        private static string PersonalityName(BattleCore.Entities.OfficerPersonality p) => p switch
+        {
+            BattleCore.Entities.OfficerPersonality.Brave       => "勇猛",
+            BattleCore.Entities.OfficerPersonality.Cautious    => "慎重",
+            BattleCore.Entities.OfficerPersonality.Ambitious   => "野心的",
+            BattleCore.Entities.OfficerPersonality.Loyal       => "忠義",
+            BattleCore.Entities.OfficerPersonality.Opportunist => "日和見",
+            _ => ""
+        };
+
+        // -------------------------------------------------------
+        // イベントログ 色分け描画
+        // -------------------------------------------------------
+        private void lstEvents_DrawItem(object sender, DrawItemEventArgs e)
+        {
+            if (e.Index < 0 || e.Index >= lstEvents.Items.Count) return;
+            var text = lstEvents.Items[e.Index]?.ToString() ?? "";
+
+            var fg = text switch
+            {
+                var s when s.Contains("勝") || s.Contains("敗")   => Color.FromArgb(255, 120, 120), // 戦闘=赤
+                var s when s.Contains("占領")                    => Color.FromArgb(255, 200,  80), // 城占領=黄
+                var s when s.Contains("拒否") || s.Contains("進言") => Color.FromArgb(255, 220,  60), // 武将=黄
+                var s when s.Contains("離反") || s.Contains("仕官") => Color.FromArgb(255, 160,  40), // 離反=橙
+                var s when s.Contains("「」") || s.Contains("『』") => Color.FromArgb(100, 220, 255), // シナリオ=水色
+                var s when s.Contains("到着")                    => Color.FromArgb(160, 220, 160), // 移動=緑
+                var s when s.Contains("補充")                    => Color.FromArgb(180, 255, 180), // 補給=淡緑
+                var s when s.Contains("セーブ") || s.Contains("ロード") => Color.FromArgb(180, 180, 255), // 保存=紫
+                _                                                  => Color.White,
+            };
+
+            e.DrawBackground();
+            using var brush = new SolidBrush(fg);
+            e.Graphics.DrawString(text, e.Font ?? lstEvents.Font, brush,
+                e.Bounds.X + 2, e.Bounds.Y + 1);
+        }
     }
 }

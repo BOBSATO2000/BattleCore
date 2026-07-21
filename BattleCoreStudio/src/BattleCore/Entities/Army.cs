@@ -86,7 +86,7 @@ namespace BattleCore.Entities
         public int ActionPoints { get; set; } = MaxActionPoints;
 
         /// <summary>1ターンあたりの最大行動力。</summary>
-        public const int MaxActionPoints = 3;
+        public const int MaxActionPoints = 2;
 
         /// <summary>APを最大値にリセットする。ターン開始時に呼ぶ。</summary>
         public void ResetActionPoints() => ActionPoints = MaxActionPoints;
