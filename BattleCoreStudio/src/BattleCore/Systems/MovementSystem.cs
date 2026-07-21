@@ -1,3 +1,4 @@
+using BattleCore.Events;
 using BattleCore.Map;
 using BattleCore.Simulation;
 using System.Linq;
@@ -7,7 +8,7 @@ namespace BattleCore.Systems
     /// <summary>
     /// 移動システム。Army の DestinationHexId を見て1Hexずつ移動させる。
     /// 地形チェック（Mountain 不可）・AP消費・MoveCooldown を処理する。
-    /// CommandExecutionSystem が OrderMove を設定した後に実行される。
+    /// 目的地到着時に MovementEvent を EventQueue に積む。
     /// </summary>
     public class MovementSystem : ISimulationSystem
     {
@@ -15,18 +16,15 @@ namespace BattleCore.Systems
         {
             foreach (var army in context.World.Armies)
             {
-                // 兵力0の軍は移動しない
                 if (army.Soldiers <= 0)
                 {
                     army.ClearDestination();
                     continue;
                 }
 
-                // APがなければ移動不可
                 if (army.ActionPoints <= 0)
                     continue;
 
-                // クールダウン中は待機（Forest進入コスト）
                 if (army.MoveCooldown > 0)
                 {
                     army.MoveCooldown--;
@@ -37,46 +35,40 @@ namespace BattleCore.Systems
                     continue;
 
                 var next = GetNextStep(context, army);
+                if (next == null) continue;
 
-                if (next == null)
-                    continue;
-
-                // Mountain には移動不可
                 if (next.Terrain == TerrainType.Mountain)
                     continue;
 
                 army.MoveTo(next.Id);
                 army.ActionPoints--;
 
-                // Forest進入時はクールダウン1をセット（次Tickは移動スキップ）
-                // Rain時はForestのコストがさらに+1
                 if (next.Terrain == TerrainType.Forest)
-                {
                     army.MoveCooldown = context.World.Weather == Weather.Rain ? 2 : 1;
-                }
 
+                // 目的地到着
                 if (army.CurrentHexId == army.DestinationHexId)
+                {
                     army.ClearDestination();
+
+                    var officer = army.OfficerId.HasValue
+                        ? context.World.Officers.FirstOrDefault(o => o.Id == army.OfficerId.Value)
+                        : null;
+                    var name = officer?.Name ?? $"軍{army.Id}";
+                    context.EventQueue.Enqueue(new MovementEvent(army.Id, name, army.CurrentHexId));
+                }
             }
         }
 
-        /// <summary>
-        /// 目的地への次の1Hexを返す。
-        /// 目的地が隣接していればそこへ、遠い場合は最も近い隣接Hexへ1歩進む。
-        /// </summary>
         private Hex? GetNextStep(SimulationContext context, Entities.Army army)
         {
             var neighbors = context.World.Map.GetNeighbors(army.CurrentHexId);
 
-            // 目的地が隣接していれば直接移動
             var direct = neighbors.FirstOrDefault(x => x.Id == army.DestinationHexId);
-            if (direct != null)
-                return direct;
+            if (direct != null) return direct;
 
-            // 目的地が遠い場合は最も近い隣接Hexへ1歩進む
             var destination = context.World.Map.GetHexById(army.DestinationHexId!.Value);
-            if (destination == null)
-                return null;
+            if (destination == null) return null;
 
             return neighbors
                 .Where(x => x.Terrain != TerrainType.Mountain)

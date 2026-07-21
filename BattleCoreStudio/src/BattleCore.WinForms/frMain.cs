@@ -383,6 +383,16 @@ namespace BattleCoreStudio
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] 「{cc.CastleName}」を {clan?.Name ?? "?"} が占領！");
                 }
+                else if (ev is MovementEvent mv)
+                {
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] 🚶 {mv.OfficerName} が Hex{mv.HexId} に到着");
+                }
+                else if (ev is SupplyEvent sv)
+                {
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] 🌾 {sv.OfficerName} 補充+{sv.Amount} → {sv.NewSoldiers}兵");
+                }
                 else if (ev is BetrayalEvent b)
                 {
                     var officer = world.Officers.FirstOrDefault(o => o.Id == b.OfficerId);

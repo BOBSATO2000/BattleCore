@@ -1,3 +1,4 @@
+using BattleCore.Events;
 using BattleCore.Simulation;
 using System;
 using System.Linq;
@@ -25,14 +26,19 @@ namespace BattleCore.Systems
         /// <summary>兵力の上限。</summary>
         public int MaxSoldiers { get; }
 
+        /// <summary>SupplyEventを発火する補充量の閾値。微量補充はログに出さない。</summary>
+        public int EventThreshold { get; }
+
         public SupplySystem(
             int baseReplenishment = 50,
             int springBonus       = 30,
-            int maxSoldiers       = 1000)
+            int maxSoldiers       = 1000,
+            int eventThreshold    = 200)
         {
             BaseReplenishment = baseReplenishment;
             SpringBonus       = springBonus;
             MaxSoldiers       = maxSoldiers;
+            EventThreshold    = eventThreshold;
         }
 
         public void Update(SimulationContext context)
@@ -57,7 +63,20 @@ namespace BattleCore.Systems
                 var gain        = newSoldiers - army.Soldiers;
 
                 if (gain > 0)
+                {
                     army.Reinforce(gain);
+
+                    // 閾値以上の補充はイベントとして発火
+                    if (gain >= EventThreshold)
+                    {
+                        var officer = army.OfficerId.HasValue
+                            ? world.Officers.FirstOrDefault(o => o.Id == army.OfficerId.Value)
+                            : null;
+                        var name = officer?.Name ?? $"軍{army.Id}";
+                        context.EventQueue.Enqueue(
+                            new SupplyEvent(army.Id, name, gain, army.Soldiers));
+                    }
+                }
             }
         }
     }
