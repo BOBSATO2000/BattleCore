@@ -1,6 +1,7 @@
 using BattleCore.AI;
 using BattleCore.Events;
 using BattleCore.Map;
+using BattleCore.Save;
 using BattleCore.Scenario;
 using BattleCore.Simulation;
 using BattleCore.Systems;
@@ -14,6 +15,11 @@ namespace BattleCoreStudio
         private SimulationEngine engine = null!;
         private WorldState       world  = null!;
         private readonly System.Windows.Forms.Timer autoTimer = new();
+
+        private string _scenarioId      = "";
+        private string? _currentSavePath = null;
+
+        private const string SaveFilter = "BattleCore Save (*.bcsave)|*.bcsave|All files (*.*)|*.*";
 
         // Hex描画サイズ
         private const int HexSize = 36;
@@ -43,6 +49,10 @@ namespace BattleCoreStudio
 
             (world, var title, var triggers) = ScenarioLoader.Load(dlg.SelectedPath);
             Text = $"BattleCoreStudio - {title}";
+
+            // シナリオIDはファイル名（拡張子なし）
+            _scenarioId      = Path.GetFileNameWithoutExtension(dlg.SelectedPath);
+            _currentSavePath = null;
 
             engine = new SimulationEngine(world);
             engine.Register(new CastleSystem());
@@ -101,6 +111,113 @@ namespace BattleCoreStudio
             btnAuto.Enabled    = true;
             btnStop.Enabled    = false;
             InitSimulation();
+        }
+
+        // -------------------------------------------------------
+        // メニューハンドラ
+        // -------------------------------------------------------
+        private void menuNew_Click(object sender, EventArgs e)
+        {
+            autoTimer.Stop();
+            lstEvents.Items.Clear();
+            btnRestart.Enabled = false;
+            btnStep.Enabled    = true;
+            btnAuto.Enabled    = true;
+            btnStop.Enabled    = false;
+            InitSimulation();
+        }
+
+        private void menuSave_Click(object sender, EventArgs e)
+        {
+            if (_currentSavePath == null)
+            {
+                menuSaveAs_Click(sender, e);
+                return;
+            }
+            SaveToFile(_currentSavePath);
+        }
+
+        private void menuSaveAs_Click(object sender, EventArgs e)
+        {
+            using var dlg = new SaveFileDialog
+            {
+                Filter      = SaveFilter,
+                DefaultExt  = "bcsave",
+                FileName    = $"{_scenarioId}_turn{engine.Context.Time.Tick}",
+            };
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+            _currentSavePath = dlg.FileName;
+            SaveToFile(_currentSavePath);
+        }
+
+        private void menuLoad_Click(object sender, EventArgs e)
+        {
+            using var dlg = new OpenFileDialog { Filter = SaveFilter };
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+            LoadFromFile(dlg.FileName);
+        }
+
+        private void menuExit_Click(object sender, EventArgs e) => Application.Exit();
+
+        private void SaveToFile(string path)
+        {
+            try
+            {
+                SaveSystem.Save(engine.Context, _scenarioId, path);
+                lstEvents.Items.Insert(0,
+                    $"[Tick{engine.Context.Time.Tick}] セーブ完了: {Path.GetFileName(path)}");
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"セーブに失敗しました。\n{ex.Message}",
+                    "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
+        }
+
+        private void LoadFromFile(string path)
+        {
+            try
+            {
+                autoTimer.Stop();
+                btnAuto.Enabled = true;
+                btnStop.Enabled = false;
+                btnStep.Enabled = true;
+
+                var (context, scenarioId) = SaveSystem.Load(path);
+                _scenarioId      = scenarioId;
+                _currentSavePath = path;
+                world            = context.World;
+
+                // SimulationEngineごと作り直す（安全）
+                engine = new SimulationEngine(context);
+                engine.Register(new VisionSystem());
+                engine.Register(new CastleSystem());
+                engine.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
+                engine.Register(new CommandExecutionSystem());
+                engine.Register(new MovementSystem());
+                engine.Register(new BattleSystem());
+                engine.Register(new LoyaltySystem());
+                engine.Register(new RecruitmentSystem());
+                engine.Register(new SupplySystem());
+                engine.Register(new RelationshipSystem());
+                engine.Register(new DiplomacySystem());
+                engine.Register(new EventTriggerSystem(new System.Collections.Generic.List<BattleCore.Scenario.EventTriggerData>()));
+                engine.Register(new VictorySystem());
+
+                var meta = SaveSystem.LoadMetadata(path);
+                Text = $"BattleCoreStudio - {meta.ScenarioId} [Turn {meta.Turn} 読込]「{Path.GetFileName(path)}」";
+
+                lstEvents.Items.Clear();
+                lstEvents.Items.Insert(0,
+                    $"[Tick{context.Time.Tick}] ロード完了: {Path.GetFileName(path)}");
+
+                UpdateUI();
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"ロードに失敗しました。\n{ex.Message}",
+                    "エラー", MessageBoxButtons.OK, MessageBoxIcon.Error);
+            }
         }
 
         // -------------------------------------------------------

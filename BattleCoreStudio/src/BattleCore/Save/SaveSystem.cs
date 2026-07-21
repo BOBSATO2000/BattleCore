@@ -23,6 +23,9 @@ namespace BattleCore.Save
         /// <summary>現在のセーブデータフォーマットバージョン。</summary>
         public const int CurrentVersion = 1;
 
+        /// <summary>エンジンバージョン。セーブデータに埋め込み、「どのバージョンで作られたか」を記録する。</summary>
+        public const string EngineVersion = "0.5.0";
+
         private static readonly JsonSerializerOptions JsonOptions = new()
         {
             WriteIndented = true,
@@ -38,11 +41,12 @@ namespace BattleCore.Save
             {
                 Metadata = new SaveMetadata
                 {
-                    Version    = CurrentVersion,
-                    SavedAt    = DateTime.UtcNow,
-                    ScenarioId = scenarioId,
-                    Turn       = context.Time.Tick,
-                    Phase      = context.CurrentPhase.ToString(),
+                    Version       = CurrentVersion,
+                    EngineVersion = EngineVersion,
+                    SavedAt       = DateTime.UtcNow,
+                    ScenarioId    = scenarioId,
+                    Turn          = context.Time.Tick,
+                    Phase         = context.CurrentPhase.ToString(),
                 },
                 Time = new GameTimeSnapshot
                 {

@@ -11,6 +11,9 @@ namespace BattleCore.Save
         /// <summary>セーブデータのフォーマットバージョン。互換性チェックに使用。</summary>
         public int Version { get; set; } = SaveSystem.CurrentVersion;
 
+        /// <summary>セーブ時のエンジンバージョン。「どのバージョンで作られたセーブか」を記録する。</summary>
+        public string EngineVersion { get; set; } = SaveSystem.EngineVersion;
+
         /// <summary>セーブ日時（UTC）。</summary>
         public DateTime SavedAt { get; set; } = DateTime.UtcNow;
 

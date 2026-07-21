@@ -185,5 +185,128 @@ namespace BattleCore.Tests
             }
             finally { File.Delete(path); }
         }
+
+        // -------------------------------------------------------
+        // SaveLoad統合テスト（Army数/Clan数/Turn/Phase/AP/Vision一致）
+        // -------------------------------------------------------
+
+        [TestMethod]
+        public void SaveLoad_ArmyCount_Matches()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                var original = BuildContext();
+                // 軍を追加
+                var army2 = new Army(2, 0, 2, 2);
+                original.World.Armies.Add(army2);
+
+                SaveSystem.Save(original, "test", path);
+                var (loaded, _) = SaveSystem.Load(path);
+
+                Assert.AreEqual(original.World.Armies.Count, loaded.World.Armies.Count);
+            }
+            finally { File.Delete(path); }
+        }
+
+        [TestMethod]
+        public void SaveLoad_ClanCount_Matches()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                var original = BuildContext();
+                SaveSystem.Save(original, "test", path);
+                var (loaded, _) = SaveSystem.Load(path);
+
+                Assert.AreEqual(original.World.Clans.Count, loaded.World.Clans.Count);
+            }
+            finally { File.Delete(path); }
+        }
+
+        [TestMethod]
+        public void SaveLoad_Turn_Matches()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                var original = BuildContext();
+                SaveSystem.Save(original, "test", path);
+                var (loaded, _) = SaveSystem.Load(path);
+
+                Assert.AreEqual(original.Time.Tick, loaded.Time.Tick);
+            }
+            finally { File.Delete(path); }
+        }
+
+        [TestMethod]
+        public void SaveLoad_Phase_Matches()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                var original = BuildContext();
+                original.CurrentPhase = TurnPhase.Supply;
+                SaveSystem.Save(original, "test", path);
+                var (loaded, _) = SaveSystem.Load(path);
+
+                Assert.AreEqual(TurnPhase.Supply, loaded.CurrentPhase);
+            }
+            finally { File.Delete(path); }
+        }
+
+        [TestMethod]
+        public void SaveLoad_ActionPoints_Matches()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                var original = BuildContext();
+                original.World.Armies[0].ActionPoints = 2; // APを消費済みに設定
+                SaveSystem.Save(original, "test", path);
+                var (loaded, _) = SaveSystem.Load(path);
+
+                Assert.AreEqual(2, loaded.World.Armies[0].ActionPoints);
+            }
+            finally { File.Delete(path); }
+        }
+
+        [TestMethod]
+        public void SaveLoad_Vision_IsEmpty_OnLoad()
+        {
+            // VisionはVisionSystemが毎Step再計算するため、
+            // ロード直後は空であることを確認する。
+            var path = Path.GetTempFileName();
+            try
+            {
+                var original = BuildContext();
+                // Visionを手動設定してからセーブ
+                original.World.Visions[1] = new BattleCore.Vision.VisionData(1);
+                original.World.Visions[1].VisibleHexes.Add(1);
+
+                SaveSystem.Save(original, "test", path);
+                var (loaded, _) = SaveSystem.Load(path);
+
+                // ロード後はVisionは空（VisionSystemが次Stepで再計算）
+                Assert.AreEqual(0, loaded.World.Visions.Count);
+            }
+            finally { File.Delete(path); }
+        }
+
+        [TestMethod]
+        public void LoadMetadata_EngineVersion_IsSet()
+        {
+            var path = Path.GetTempFileName();
+            try
+            {
+                var original = BuildContext();
+                SaveSystem.Save(original, "test", path);
+                var meta = SaveSystem.LoadMetadata(path);
+
+                Assert.AreEqual(SaveSystem.EngineVersion, meta.EngineVersion);
+                Assert.IsFalse(string.IsNullOrEmpty(meta.EngineVersion));
+            }
+            finally { File.Delete(path); }
+        }
     }
 }
