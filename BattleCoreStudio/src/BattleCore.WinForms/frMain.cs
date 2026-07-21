@@ -393,6 +393,16 @@ namespace BattleCoreStudio
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] 🌾 {sv.OfficerName} 補充+{sv.Amount} → {sv.NewSoldiers}兵");
                 }
+                else if (ev is OfficerRefusedOrderEvent rf)
+                {
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] ⚠ {rf.OfficerName}は命令を拒否した（{rf.Reason}）");
+                }
+                else if (ev is OfficerRequestedRetreatEvent rr)
+                {
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] ⚠ {rr.OfficerName}は撤退を進言した（兵力:{rr.Soldiers}）");
+                }
                 else if (ev is BetrayalEvent b)
                 {
                     var officer = world.Officers.FirstOrDefault(o => o.Id == b.OfficerId);

@@ -4,44 +4,49 @@ using BattleCore.Simulation;
 namespace BattleCore.Systems
 {
     /// <summary>
-    /// 勢力単位の戦略決定システム。
-    /// SimpleArmyDecision（Army単位）の上位に位置し、Clan 全体の戦略を担当する。
-    /// 
+    /// 勢力単位の戦略決定システム。2層構造。
+    ///
+    /// Layer 1: IClanStrategy.Decide() — 勢力として何をしたいか
+    /// Layer 2: OfficerDecision.Filter() — この武将は従うのか？
+    ///
     /// 処理の流れ：
-    ///   WorldState の全 Clan を走査
+    ///   IClanStrategy → 命令リスト生成
     ///       ↓
-    ///   IClanStrategy.Decide(clan, world) で命令リストを取得
+    ///   OfficerDecision → 性格・忠誠・人間関係でフィルタ
     ///       ↓
     ///   CommandQueue に積む
     ///       ↓
-    ///   CommandExecutionSystem が実行
-    ///       ↓
-    ///   MovementSystem が移動
-    /// 
-    /// DecisionSystem（Army単位）と併用する場合は
-    /// ClanDecisionSystem を先に登録することを推奨する。
+    ///   EventQueue に武将イベントを積む
     /// </summary>
     public class ClanDecisionSystem : ISimulationSystem
     {
-        private readonly IClanStrategy strategy;
+        private readonly IClanStrategy   strategy;
+        private readonly OfficerDecision officerDecision;
 
-        public ClanDecisionSystem(IClanStrategy strategy)
+        public ClanDecisionSystem(IClanStrategy strategy, OfficerDecision? officerDecision = null)
         {
-            this.strategy = strategy;
+            this.strategy        = strategy;
+            this.officerDecision = officerDecision ?? new OfficerDecision();
         }
 
         public void Update(SimulationContext context)
         {
             foreach (var clan in context.World.Clans)
             {
-                // プレイヤー操作の勢力はAI制御をスキップする
-                // （将来の PlayerController / PlayerCommandInput 層が CommandQueue に命令を積む）
                 if (clan.IsPlayerControlled) continue;
 
-                foreach (var command in strategy.Decide(clan, context.World))
-                {
-                    context.CommandQueue.Enqueue(command);
-                }
+                // Layer 1: 勢力戦略
+                var rawCommands = strategy.Decide(clan, context.World);
+
+                // Layer 2: 武将意思決定フィルタ
+                var (filteredCommands, officerEvents) =
+                    officerDecision.Filter(rawCommands, clan, context.World);
+
+                foreach (var cmd in filteredCommands)
+                    context.CommandQueue.Enqueue(cmd);
+
+                foreach (var ev in officerEvents)
+                    context.EventQueue.Enqueue(ev);
             }
         }
     }

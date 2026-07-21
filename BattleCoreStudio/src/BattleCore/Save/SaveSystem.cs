@@ -113,6 +113,7 @@ namespace BattleCore.Save
                     Intelligence = o.Intelligence, Ambition = o.Ambition,
                     Leadership = o.Leadership, Strategy = o.Strategy,
                     Courage = o.Courage, BattleWins = o.BattleWins,
+                    Personality = o.Personality.ToString(),
                 });
 
             foreach (var a in world.Armies)
@@ -179,6 +180,7 @@ namespace BattleCore.Save
                     Ambition = o.Ambition, Leadership = o.Leadership,
                     Strategy = o.Strategy, Courage = o.Courage,
                     BattleWins = o.BattleWins,
+                    Personality = Enum.Parse<OfficerPersonality>(o.Personality),
                 };
                 world.Officers.Add(officer);
             }

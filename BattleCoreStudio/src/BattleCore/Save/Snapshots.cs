@@ -46,6 +46,7 @@ namespace BattleCore.Save
         public int Strategy { get; set; }
         public int Courage { get; set; }
         public int BattleWins { get; set; }
+        public string Personality { get; set; } = "Loyal";
     }
 
     public class ArmySnapshot

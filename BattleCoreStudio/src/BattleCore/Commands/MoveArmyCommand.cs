@@ -14,10 +14,16 @@ namespace BattleCore.Commands
 
         public int ArmyId           => armyId;
         public int DestinationHexId => destinationHexId;
-        public MoveArmyCommand(int armyId, int destinationHexId)
+
+        /// <summary>命令の判断理由。デバッグ・UI表示・将来のプレイヤー説明に使用。</summary>
+        public DecisionReason Reason { get; }
+
+        public MoveArmyCommand(int armyId, int destinationHexId,
+            DecisionReason reason = DecisionReason.Advance)
         {
             this.armyId = armyId;
             this.destinationHexId = destinationHexId;
+            Reason = reason;
         }
 
         /// <summary>

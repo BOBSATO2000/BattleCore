@@ -46,6 +46,12 @@ namespace BattleCore.Entities
         /// <summary>戦闘勝利回数。成長システムで使用する。</summary>
         public int BattleWins { get; set; }
 
+        /// <summary>
+        /// 武将の性格。AI意思決定の基盤。
+        /// 同じ命令でも性格によって従い方・変更の仕方が異なる。
+        /// </summary>
+        public OfficerPersonality Personality { get; set; } = OfficerPersonality.Loyal;
+
         public Officer(int id, string name) : base(id)
         {
             Name = name;
