@@ -16,6 +16,9 @@ namespace BattleCore.Simulation
         public int  IndependentCount { get; init; }
         public int  TotalEvents   { get; init; }
 
+        /// <summary>発火したシナリオイベントID一覧。</summary>
+        public IReadOnlySet<string> FiredEvents { get; init; } = new HashSet<string>();
+
         /// <summary>武将別統計。Key = OfficerId。</summary>
         public IReadOnlyDictionary<int, OfficerRunStats> OfficerStats { get; init; }
             = new Dictionary<int, OfficerRunStats>();
@@ -33,6 +36,7 @@ namespace BattleCore.Simulation
                 RefusalCount   = stats.RefusalCount,
                 IndependentCount = stats.IndependentCount,
                 TotalEvents    = stats.TotalEvents,
+                FiredEvents    = stats.FiredEvents,
                 OfficerStats   = stats.OfficerStats,
             };
 

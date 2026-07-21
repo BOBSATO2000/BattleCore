@@ -42,6 +42,30 @@ namespace BattleCore.Simulation
         public double AvgBattles()
             => _records.Count == 0 ? 0 : _records.Average(r => r.BattleCount);
 
+        /// <summary>
+        /// イベント別統計。Key = TriggerId。
+        /// 発火率と、発火した回の勝者分布を返す。
+        /// </summary>
+        public Dictionary<string, EventStat> EventStats()
+        {
+            var result = new Dictionary<string, EventStat>();
+            foreach (var rec in _records)
+            {
+                foreach (var id in rec.FiredEvents)
+                {
+                    if (!result.TryGetValue(id, out var es))
+                        result[id] = es = new EventStat { TriggerId = id };
+                    es.FiredCount++;
+                    if (rec.WinnerClanId.HasValue)
+                    {
+                        es.WinsByClan.TryGetValue(rec.WinnerClanId.Value, out int w);
+                        es.WinsByClan[rec.WinnerClanId.Value] = w + 1;
+                    }
+                }
+            }
+            return result;
+        }
+
         /// <summary>指定フィールドの統計（平均/最小/最大/標準偏差）を返す。</summary>
         public FieldStats CalcStats(Func<BattleRunRecord, int> selector)
         {
@@ -83,5 +107,17 @@ namespace BattleCore.Simulation
         public int    Max    { get; init; }
         public double StdDev { get; init; }
         public override string ToString() => $"{Avg:F1} (min:{Min} max:{Max} σ:{StdDev:F1})";
+    }
+
+    /// <summary>イベント別統計。</summary>
+    public sealed class EventStat
+    {
+        public string TriggerId  { get; init; } = "";
+        public int    FiredCount { get; set; }
+        /// <summary>発火時の勝者分布。Key = ClanId。</summary>
+        public Dictionary<int, int> WinsByClan { get; } = new();
+
+        public double FiredRate(int totalRuns)
+            => totalRuns > 0 ? FiredCount * 100.0 / totalRuns : 0;
     }
 }

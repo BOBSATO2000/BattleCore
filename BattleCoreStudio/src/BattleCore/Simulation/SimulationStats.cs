@@ -17,6 +17,9 @@ namespace BattleCore.Simulation
         public int? WinnerClanId    { get; private set; }
         public string WinReason     { get; private set; } = "";
 
+        /// <summary>発火したシナリオイベントID一覧。</summary>
+        public HashSet<string> FiredEvents { get; } = new();
+
         /// <summary>武将別統計。Key = OfficerId。</summary>
         public Dictionary<int, OfficerRunStats> OfficerStats { get; } = new();
 
@@ -34,6 +37,7 @@ namespace BattleCore.Simulation
                 TotalEvents++;
                 switch (ev)
                 {
+                    case ScenarioEvent se:          FiredEvents.Add(se.TriggerId); break;
                     case BattleLogEvent:           BattleCount++;   break;
                     case SupplyEvent:              SupplyCount++;   break;
                     case BetrayalEvent:            BetrayalCount++; break;

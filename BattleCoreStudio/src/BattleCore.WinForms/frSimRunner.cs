@@ -344,6 +344,27 @@ namespace BattleCoreStudio
             }
             AppendTo(r, "\n");
 
+            // イベント統計
+            var evStats = summary.EventStats();
+            if (evStats.Count > 0)
+            {
+                AppendTo(r, "--- イベント統計 ---\n", Color.FromArgb(100, 200, 255));
+                foreach (var (id, es) in evStats.OrderBy(x => x.Key))
+                {
+                    double rate = es.FiredRate(summary.TotalRuns);
+                    AppendTo(r, $"  {id}\n", Color.FromArgb(255, 200, 80));
+                    AppendTo(r, $"    発火率: {rate:F1}% ({es.FiredCount}/{summary.TotalRuns})\n", Color.FromArgb(180, 180, 180));
+                    foreach (var clan in _world.Clans)
+                    {
+                        es.WinsByClan.TryGetValue(clan.Id, out int cw);
+                        if (cw == 0) continue;
+                        double cwPct = es.FiredCount > 0 ? cw * 100.0 / es.FiredCount : 0;
+                        AppendTo(r, $"    {clan.Name}勝利: {cwPct:F1}% ({cw}回)\n", Color.FromArgb(140, 220, 140));
+                    }
+                }
+                AppendTo(r, "\n");
+            }
+
             // 現在のAIパラメータ表示
             var aiParams = BattleCore.AI.AiParamsLoader.LoadFromBaseDir();
             AppendTo(r, "--- AIパラメータ (ai_params.json) ---\n", Color.FromArgb(100, 200, 255));
