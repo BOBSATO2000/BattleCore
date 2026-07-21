@@ -17,12 +17,14 @@ namespace BattleCore.Simulation
         public int? WinnerClanId    { get; private set; }
         public string WinReason     { get; private set; } = "";
 
+        /// <summary>武将別統計。Key = OfficerId。</summary>
+        public Dictionary<int, OfficerRunStats> OfficerStats { get; } = new();
+
         /// <summary>1ターン分のイベントキューを処理して統計を更新する。</summary>
         public void Collect(SimulationContext context)
         {
             TurnsExecuted++;
 
-            // EventQueueを消費せずに走査（Peekできないので一時リストに退避）
             var events = new List<IGameEvent>();
             while (context.EventQueue.Count > 0)
                 events.Add(context.EventQueue.Dequeue());
@@ -32,12 +34,17 @@ namespace BattleCore.Simulation
                 TotalEvents++;
                 switch (ev)
                 {
-                    case BattleLogEvent:              BattleCount++;      break;
-                    case SupplyEvent:                 SupplyCount++;      break;
-                    case BetrayalEvent:               BetrayalCount++;    break;
-                    case OfficerRefusedOrderEvent:    RefusalCount++;     break;
-                    case DecisionExplanationEvent de
-                        when de.Summary == "独断行動": IndependentCount++; break;
+                    case BattleLogEvent:           BattleCount++;   break;
+                    case SupplyEvent:              SupplyCount++;   break;
+                    case BetrayalEvent:            BetrayalCount++; break;
+                    case OfficerRefusedOrderEvent rf:
+                        RefusalCount++;
+                        GetOrAdd(rf.OfficerId, rf.OfficerName, "").RefusalCount++;
+                        break;
+                    case DecisionExplanationEvent de when de.Summary == "独断行動":
+                        IndependentCount++;
+                        GetOrAdd(de.OfficerId, de.OfficerName, "").IndependentCount++;
+                        break;
                     case GameOverEvent go:
                         WinnerClanId = go.WinnerClanId;
                         WinReason    = go.Reason;
@@ -45,9 +52,23 @@ namespace BattleCore.Simulation
                 }
             }
 
-            // 消費したイベントを戻す（UIが後で読めるように）
+            // 兵力0の武将を戦死扱いにする
+            foreach (var army in context.World.Armies.Where(a => a.Soldiers == 0 && a.OfficerId.HasValue))
+            {
+                var o = context.World.Officers.FirstOrDefault(x => x.Id == army.OfficerId!.Value);
+                if (o != null)
+                    GetOrAdd(o.Id, o.Name, o.Personality.ToString()).Survived = false;
+            }
+
             foreach (var ev in events)
                 context.EventQueue.Enqueue(ev);
+        }
+
+        private OfficerRunStats GetOrAdd(int id, string name, string personality)
+        {
+            if (!OfficerStats.TryGetValue(id, out var s))
+                OfficerStats[id] = s = new OfficerRunStats { OfficerId = id, Name = name, Personality = personality };
+            return s;
         }
 
         public void IncrementTurn() => TurnsExecuted++;

@@ -74,5 +74,57 @@ namespace BattleCore.Simulation
         }
 
         public void Stop() => Pause();
+
+        /// <summary>
+        /// N回バッチ実行。各回はシナリオをロードし直して実行する。
+        /// seed指定時は seed+runIndex で再現性を保証する。
+        /// </summary>
+        public Task<BattleRunSummary> RunBatchAsync(
+            Func<int?, SimulationEngine> engineFactory,
+            int runs,
+            int maxTurns,
+            int? baseSeed = null,
+            Action<int, SimulationStats>? onRunCompleted = null,
+            CancellationToken external = default)
+        {
+            _cts = CancellationTokenSource.CreateLinkedTokenSource(external);
+            var token = _cts.Token;
+            IsRunning = true;
+
+            return Task.Run(async () =>
+            {
+                var summary = new BattleRunSummary();
+                try
+                {
+                    for (int i = 0; i < runs && !token.IsCancellationRequested; i++)
+                    {
+                        int? seed = baseSeed.HasValue ? baseSeed.Value + i : null;
+                        var eng   = engineFactory(seed);
+                        var stats = new SimulationStats();
+
+                        for (int t = 0; t < maxTurns && !token.IsCancellationRequested; t++)
+                        {
+                            eng.Step();
+                            stats.Collect(eng.Context);
+                            if (stats.WinnerClanId.HasValue || stats.WinReason.Length > 0) break;
+                        }
+
+                        var record = BattleRunRecord.From(i + 1, seed, stats);
+                        summary.Add(record);
+                        onRunCompleted?.Invoke(i + 1, stats);
+
+                        // MAX以外は少し間を置く
+                        if (IntervalMs > 0)
+                            await Task.Delay(Math.Min(IntervalMs, 50), token).ConfigureAwait(false);
+                    }
+                }
+                catch (OperationCanceledException) { }
+                finally
+                {
+                    IsRunning = false;
+                }
+                return summary;
+            }, token);
+        }
     }
 }

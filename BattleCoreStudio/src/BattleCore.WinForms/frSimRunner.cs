@@ -1,204 +1,367 @@
+using BattleCore.AI;
+using BattleCore.Scenario;
 using BattleCore.Simulation;
+using BattleCore.Systems;
+using BattleCore.Systems.Battle;
 using BattleCore.World;
 
 namespace BattleCoreStudio
 {
     /// <summary>
     /// 自動AIシミュレーションダイアログ。
-    /// SimulationRunner を使って指定ターン数を自動実行し、統計を表示する。
+    /// シングル実行（1回）とバッチ実行（N回）の2モードを持つ。
     /// </summary>
     internal sealed class frSimRunner : Form
     {
         private readonly SimulationEngine _engine;
         private readonly WorldState       _world;
+        private readonly string           _scenarioPath;
         private SimulationRunner?         _runner;
+        private BattleRunSummary?         _lastSummary;
 
+        // シングル実行UI
+        private TabControl   tabMain    = null!;
+        private TabPage      tabSingle  = null!;
+        private TabPage      tabBatch   = null!;
+
+        // シングル
         private NumericUpDown nudTurns   = null!;
         private ComboBox      cmbSpeed   = null!;
         private Button        btnRun     = null!;
         private Button        btnStop    = null!;
-        private Button        btnClose   = null!;
         private ProgressBar   pbProgress = null!;
-        private RichTextBox   rtbResult  = null!;
         private Label         lblTurn    = null!;
+        private RichTextBox   rtbResult  = null!;
 
-        public frSimRunner(SimulationEngine engine, WorldState world)
+        // バッチ
+        private NumericUpDown nudBatchRuns   = null!;
+        private NumericUpDown nudBatchTurns  = null!;
+        private NumericUpDown nudSeed        = null!;
+        private CheckBox      chkUseSeed     = null!;
+        private Button        btnBatchRun    = null!;
+        private Button        btnBatchStop   = null!;
+        private Button        btnExportCsv   = null!;
+        private ProgressBar   pbBatch        = null!;
+        private Label         lblBatchStatus = null!;
+        private RichTextBox   rtbBatch       = null!;
+
+        private Button btnClose = null!;
+
+        public frSimRunner(SimulationEngine engine, WorldState world, string scenarioPath)
         {
-            _engine = engine;
-            _world  = world;
+            _engine       = engine;
+            _world        = world;
+            _scenarioPath = scenarioPath;
             InitUI();
         }
 
         private void InitUI()
         {
-            Text          = "Auto Simulation";
-            ClientSize    = new Size(420, 480);
+            Text            = "Simulation Runner";
+            ClientSize      = new Size(480, 560);
             FormBorderStyle = FormBorderStyle.FixedDialog;
-            MaximizeBox   = false;
-            BackColor     = Color.FromArgb(20, 20, 40);
-            ForeColor     = Color.White;
+            MaximizeBox     = false;
+            BackColor       = Color.FromArgb(20, 20, 40);
+            ForeColor       = Color.White;
 
-            var lblT = new Label { Text = "実行ターン数:", Location = new Point(12, 16), Size = new Size(100, 20) };
+            tabMain   = new TabControl { Location = new Point(8, 8), Size = new Size(460, 500) };
+            tabSingle = new TabPage("シングル実行");
+            tabBatch  = new TabPage("バッチ実行");
+            tabMain.TabPages.AddRange([tabSingle, tabBatch]);
+
+            BuildSingleTab();
+            BuildBatchTab();
+
+            btnClose = new Button
+            {
+                Text = "閉じる", Location = new Point(376, 520), Size = new Size(90, 28),
+                BackColor = Color.FromArgb(40, 40, 80), ForeColor = Color.White,
+            };
+            btnClose.Click += (_, _) => Close();
+
+            Controls.AddRange([tabMain, btnClose]);
+        }
+
+        // ── シングル実行タブ ──────────────────────────────────────
+        private void BuildSingleTab()
+        {
+            var p = tabSingle;
+            p.BackColor = Color.FromArgb(20, 20, 40);
+            p.ForeColor = Color.White;
+
+            Add(p, new Label { Text = "ターン数:", Location = new Point(8, 12), Size = new Size(80, 20) });
             nudTurns = new NumericUpDown
             {
-                Location = new Point(120, 14), Size = new Size(80, 24),
+                Location = new Point(92, 10), Size = new Size(80, 24),
                 Minimum = 1, Maximum = 10000, Value = 100,
                 BackColor = Color.FromArgb(30, 30, 50), ForeColor = Color.White,
             };
+            Add(p, nudTurns);
 
-            var lblS = new Label { Text = "速度:", Location = new Point(220, 16), Size = new Size(40, 20) };
+            Add(p, new Label { Text = "速度:", Location = new Point(184, 12), Size = new Size(40, 20) });
             cmbSpeed = new ComboBox
             {
-                Location = new Point(264, 14), Size = new Size(100, 24),
+                Location = new Point(228, 10), Size = new Size(100, 24),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = Color.FromArgb(30, 30, 50), ForeColor = Color.White,
             };
             cmbSpeed.Items.AddRange(["×1 (1s)", "×2 (0.5s)", "×5 (0.2s)", "×10 (0.1s)", "MAX"]);
-            cmbSpeed.SelectedIndex = 4; // デフォルトMAX
+            cmbSpeed.SelectedIndex = 4;
+            Add(p, cmbSpeed);
 
-            btnRun = new Button
-            {
-                Text = "▶ 実行", Location = new Point(12, 48), Size = new Size(90, 30),
-                BackColor = Color.FromArgb(40, 100, 40), ForeColor = Color.White,
-            };
-            btnStop = new Button
-            {
-                Text = "■ 停止", Location = new Point(110, 48), Size = new Size(90, 30),
-                Enabled = false,
-                BackColor = Color.FromArgb(80, 40, 40), ForeColor = Color.White,
-            };
-            btnClose = new Button
-            {
-                Text = "閉じる", Location = new Point(316, 48), Size = new Size(90, 30),
-                BackColor = Color.FromArgb(40, 40, 80), ForeColor = Color.White,
-            };
+            btnRun = Btn("▶ 実行", new Point(8, 42), Color.FromArgb(40, 100, 40));
+            btnRun.Click += BtnRun_Click;
+            btnStop = Btn("■ 停止", new Point(106, 42), Color.FromArgb(80, 40, 40));
+            btnStop.Enabled = false;
+            btnStop.Click += BtnStop_Click;
+            Add(p, btnRun); Add(p, btnStop);
 
-            lblTurn = new Label
-            {
-                Text = "Turn: 0", Location = new Point(12, 88),
-                Size = new Size(390, 20), ForeColor = Color.FromArgb(180, 180, 255),
-            };
+            lblTurn = new Label { Text = "Turn: 0", Location = new Point(8, 80), Size = new Size(430, 20), ForeColor = Color.FromArgb(180, 180, 255) };
+            Add(p, lblTurn);
 
-            pbProgress = new ProgressBar
-            {
-                Location = new Point(12, 110), Size = new Size(390, 16),
-                Minimum = 0, Maximum = 100, Value = 0,
-            };
+            pbProgress = new ProgressBar { Location = new Point(8, 102), Size = new Size(430, 14) };
+            Add(p, pbProgress);
 
-            var lblR = new Label { Text = "結果:", Location = new Point(12, 136), Size = new Size(60, 20) };
-            rtbResult = new RichTextBox
-            {
-                Location = new Point(12, 158), Size = new Size(390, 300),
-                BackColor = Color.FromArgb(15, 15, 30), ForeColor = Color.White,
-                Font = new Font("MS Gothic", 9f), ReadOnly = true,
-                BorderStyle = BorderStyle.FixedSingle,
-            };
-
-            Controls.AddRange([lblT, nudTurns, lblS, cmbSpeed,
-                btnRun, btnStop, btnClose, lblTurn, pbProgress, lblR, rtbResult]);
-
-            btnRun.Click   += BtnRun_Click;
-            btnStop.Click  += BtnStop_Click;
-            btnClose.Click += (_, _) => Close();
+            Add(p, new Label { Text = "結果:", Location = new Point(8, 122), Size = new Size(60, 20) });
+            rtbResult = Rtb(new Point(8, 144), new Size(430, 300));
+            Add(p, rtbResult);
         }
 
+        // ── バッチ実行タブ ──────────────────────────────────────
+        private void BuildBatchTab()
+        {
+            var p = tabBatch;
+            p.BackColor = Color.FromArgb(20, 20, 40);
+            p.ForeColor = Color.White;
+
+            Add(p, new Label { Text = "実行回数:", Location = new Point(8, 12), Size = new Size(72, 20) });
+            nudBatchRuns = new NumericUpDown
+            {
+                Location = new Point(84, 10), Size = new Size(64, 24),
+                Minimum = 1, Maximum = 1000, Value = 10,
+                BackColor = Color.FromArgb(30, 30, 50), ForeColor = Color.White,
+            };
+            Add(p, nudBatchRuns);
+
+            Add(p, new Label { Text = "最大ターン:", Location = new Point(160, 12), Size = new Size(80, 20) });
+            nudBatchTurns = new NumericUpDown
+            {
+                Location = new Point(244, 10), Size = new Size(72, 24),
+                Minimum = 10, Maximum = 10000, Value = 200,
+                BackColor = Color.FromArgb(30, 30, 50), ForeColor = Color.White,
+            };
+            Add(p, nudBatchTurns);
+
+            chkUseSeed = new CheckBox { Text = "シード固定", Location = new Point(8, 42), Size = new Size(90, 20), ForeColor = Color.White };
+            Add(p, chkUseSeed);
+            nudSeed = new NumericUpDown
+            {
+                Location = new Point(104, 40), Size = new Size(80, 24),
+                Minimum = 0, Maximum = 999999, Value = 42,
+                BackColor = Color.FromArgb(30, 30, 50), ForeColor = Color.White, Enabled = false,
+            };
+            chkUseSeed.CheckedChanged += (_, _) => nudSeed.Enabled = chkUseSeed.Checked;
+            Add(p, nudSeed);
+
+            btnBatchRun  = Btn("▶ バッチ実行", new Point(8, 70), Color.FromArgb(40, 100, 40));
+            btnBatchRun.Click += BtnBatchRun_Click;
+            btnBatchStop = Btn("■ 停止", new Point(116, 70), Color.FromArgb(80, 40, 40));
+            btnBatchStop.Enabled = false;
+            btnBatchStop.Click += BtnBatchStop_Click;
+            btnExportCsv = Btn("CSV出力", new Point(224, 70), Color.FromArgb(40, 60, 100));
+            btnExportCsv.Enabled = false;
+            btnExportCsv.Click += BtnExportCsv_Click;
+            Add(p, btnBatchRun); Add(p, btnBatchStop); Add(p, btnExportCsv);
+
+            lblBatchStatus = new Label { Text = "待機中", Location = new Point(8, 106), Size = new Size(430, 20), ForeColor = Color.FromArgb(180, 180, 255) };
+            Add(p, lblBatchStatus);
+
+            pbBatch = new ProgressBar { Location = new Point(8, 128), Size = new Size(430, 14) };
+            Add(p, pbBatch);
+
+            Add(p, new Label { Text = "集計結果:", Location = new Point(8, 148), Size = new Size(80, 20) });
+            rtbBatch = Rtb(new Point(8, 170), new Size(430, 270));
+            Add(p, rtbBatch);
+        }
+
+        // ── シングル実行 ──────────────────────────────────────────
         private void BtnRun_Click(object? sender, EventArgs e)
         {
-            int maxTurns  = (int)nudTurns.Value;
-            int intervalMs = cmbSpeed.SelectedIndex switch
-            {
-                0 => 1000,
-                1 => 500,
-                2 => 200,
-                3 => 100,
-                _ => 0,   // MAX
-            };
+            int maxTurns   = (int)nudTurns.Value;
+            int intervalMs = cmbSpeed.SelectedIndex switch { 0=>1000, 1=>500, 2=>200, 3=>100, _=>0 };
 
-            pbProgress.Maximum = maxTurns;
-            pbProgress.Value   = 0;
+            pbProgress.Maximum = maxTurns; pbProgress.Value = 0;
             rtbResult.Clear();
-            btnRun.Enabled  = false;
-            btnStop.Enabled = true;
+            btnRun.Enabled = false; btnStop.Enabled = true;
 
             _runner = new SimulationRunner(_engine) { IntervalMs = intervalMs };
-
-            _runner.TurnCompleted += stats => Invoke(() =>
+            _runner.TurnCompleted += s => Invoke(() =>
             {
-                lblTurn.Text      = $"Turn: {stats.TurnsExecuted} / {maxTurns}";
-                pbProgress.Value  = Math.Min(stats.TurnsExecuted, maxTurns);
+                lblTurn.Text     = $"Turn: {s.TurnsExecuted} / {maxTurns}";
+                pbProgress.Value = Math.Min(s.TurnsExecuted, maxTurns);
             });
-
-            _runner.RunCompleted += stats => Invoke(() =>
+            _runner.RunCompleted += s => Invoke(() =>
             {
-                btnRun.Enabled  = true;
-                btnStop.Enabled = false;
-                ShowStats(stats, maxTurns);
+                btnRun.Enabled = true; btnStop.Enabled = false;
+                ShowSingleStats(s, maxTurns);
             });
-
             _ = _runner.RunAsync(maxTurns);
         }
 
         private void BtnStop_Click(object? sender, EventArgs e)
         {
             _runner?.Stop();
-            btnRun.Enabled  = true;
-            btnStop.Enabled = false;
+            btnRun.Enabled = true; btnStop.Enabled = false;
         }
 
-        private void ShowStats(SimulationStats stats, int maxTurns)
+        private void ShowSingleStats(SimulationStats s, int maxTurns)
         {
             rtbResult.Clear();
-
-            Append("=== Simulation Result ===\n", Color.FromArgb(180, 180, 255));
-            Append($"実行ターン : {stats.TurnsExecuted} / {maxTurns}\n");
-            Append($"総イベント : {stats.TotalEvents}\n");
-            Append("\n");
-
-            // 勝利結果
-            if (stats.WinnerClanId.HasValue)
+            AppendTo(rtbResult, "=== Result ===\n", Color.FromArgb(180, 180, 255));
+            AppendTo(rtbResult, $"実行ターン : {s.TurnsExecuted} / {maxTurns}\n");
+            if (s.WinnerClanId.HasValue)
             {
-                var winner = _world.Clans.FirstOrDefault(c => c.Id == stats.WinnerClanId.Value);
-                Append($"勝利勢力  : {winner?.Name ?? "?"}\n", Color.FromArgb(255, 220, 60));
-                Append($"理由      : {stats.WinReason}\n", Color.FromArgb(200, 200, 100));
+                var w = _world.Clans.FirstOrDefault(c => c.Id == s.WinnerClanId.Value);
+                AppendTo(rtbResult, $"勝利勢力  : {w?.Name ?? "?"}\n", Color.FromArgb(255, 220, 60));
             }
-            else if (!string.IsNullOrEmpty(stats.WinReason))
-            {
-                Append($"終了理由  : {stats.WinReason}\n", Color.FromArgb(200, 200, 100));
-            }
-            else
-            {
-                Append($"結果      : ターン上限到達\n", Color.Gray);
-            }
-            Append("\n");
-
-            // 勢力別兵力
-            Append("--- 勢力別現況 ---\n", Color.FromArgb(100, 200, 255));
-            foreach (var clan in _world.Clans)
-            {
-                var total   = _world.Armies.Where(a => a.ClanId == clan.Id).Sum(a => a.Soldiers);
-                var castles = _world.Castles.Count(c => c.OwnerClanId == clan.Id);
-                Append($"  {clan.Name,-8} 兵:{total,6:#,0}  城:{castles}\n");
-            }
-            Append("\n");
-
-            // 統計
-            Append("--- Statistics ---\n", Color.FromArgb(100, 200, 255));
-            Append($"  戦闘回数   : {stats.BattleCount}\n");
-            Append($"  補給回数   : {stats.SupplyCount}\n");
-            Append($"  離反回数   : {stats.BetrayalCount}\n",
-                stats.BetrayalCount > 0 ? Color.FromArgb(255, 160, 40) : Color.White);
-            Append($"  命令拒否   : {stats.RefusalCount}\n",
-                stats.RefusalCount > 0 ? Color.FromArgb(255, 220, 60) : Color.White);
-            Append($"  独断行動   : {stats.IndependentCount}\n",
-                stats.IndependentCount > 0 ? Color.FromArgb(200, 160, 255) : Color.White);
+            AppendTo(rtbResult, $"\n戦闘:{s.BattleCount}  補給:{s.SupplyCount}  離反:{s.BetrayalCount}  拒否:{s.RefusalCount}  独断:{s.IndependentCount}\n");
         }
 
-        private void Append(string text, Color? color = null)
+        // ── バッチ実行 ──────────────────────────────────────────
+        private void BtnBatchRun_Click(object? sender, EventArgs e)
         {
-            rtbResult.SelectionStart  = rtbResult.TextLength;
-            rtbResult.SelectionLength = 0;
-            rtbResult.SelectionColor  = color ?? Color.White;
-            rtbResult.AppendText(text);
+            int runs     = (int)nudBatchRuns.Value;
+            int maxTurns = (int)nudBatchTurns.Value;
+            int? seed    = chkUseSeed.Checked ? (int)nudSeed.Value : null;
+
+            pbBatch.Maximum = runs; pbBatch.Value = 0;
+            rtbBatch.Clear();
+            btnBatchRun.Enabled = false; btnBatchStop.Enabled = true; btnExportCsv.Enabled = false;
+            lblBatchStatus.Text = $"実行中... 0 / {runs}";
+
+            _runner = new SimulationRunner(_engine) { IntervalMs = 0 };
+
+            _ = _runner.RunBatchAsync(
+                engineFactory: s => BuildBatchEngine(s),
+                runs: runs,
+                maxTurns: maxTurns,
+                baseSeed: seed,
+                onRunCompleted: (i, stats) => Invoke(() =>
+                {
+                    pbBatch.Value       = i;
+                    lblBatchStatus.Text = $"実行中... {i} / {runs}";
+                }),
+                external: default
+            ).ContinueWith(t => Invoke(() =>
+            {
+                _lastSummary = t.Result;
+                btnBatchRun.Enabled  = true;
+                btnBatchStop.Enabled = false;
+                btnExportCsv.Enabled = true;
+                lblBatchStatus.Text  = $"完了: {runs}回";
+                ShowBatchSummary(_lastSummary, runs);
+            }));
+        }
+
+        private SimulationEngine BuildBatchEngine(int? seed)
+        {
+            var (world, _, triggers) = ScenarioLoader.Load(_scenarioPath);
+            var ctx = new SimulationContext(world, new BattleCore.Simulation.GameTime(seed));
+            var eng = new SimulationEngine(ctx);
+            eng.Register(new VisionSystem());
+            eng.Register(new CastleSystem());
+            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
+            eng.Register(new CommandExecutionSystem());
+            eng.Register(new MovementSystem());
+            eng.Register(new BattleSystem());
+            eng.Register(new LoyaltySystem());
+            eng.Register(new RecruitmentSystem());
+            eng.Register(new SupplySystem());
+            eng.Register(new RelationshipSystem());
+            eng.Register(new DiplomacySystem());
+            eng.Register(new EventTriggerSystem(triggers));
+            eng.Register(new VictorySystem());
+            return eng;
+        }
+
+        private void BtnBatchStop_Click(object? sender, EventArgs e)
+        {
+            _runner?.Stop();
+            btnBatchRun.Enabled = true; btnBatchStop.Enabled = false;
+        }
+
+        private void BtnExportCsv_Click(object? sender, EventArgs e)
+        {
+            if (_lastSummary == null) return;
+            using var dlg = new SaveFileDialog
+            {
+                Filter = "CSV (*.csv)|*.csv", DefaultExt = "csv",
+                FileName = $"battlecore_batch_{DateTime.Now:yyyyMMdd_HHmmss}",
+            };
+            if (dlg.ShowDialog() != DialogResult.OK) return;
+            File.WriteAllLines(dlg.FileName,
+                _lastSummary.ToCsvLines(id => id.HasValue
+                    ? _world.Clans.FirstOrDefault(c => c.Id == id.Value)?.Name ?? "?"
+                    : "引き分け"),
+                System.Text.Encoding.UTF8);
+            MessageBox.Show($"CSV出力完了:\n{dlg.FileName}", "完了",
+                MessageBoxButtons.OK, MessageBoxIcon.Information);
+        }
+
+        private void ShowBatchSummary(BattleRunSummary summary, int runs)
+        {
+            var r = rtbBatch;
+            r.Clear();
+            AppendTo(r, $"=== Batch Result ({summary.TotalRuns}回) ===\n", Color.FromArgb(180, 180, 255));
+            AppendTo(r, $"平均ターン : {summary.AvgTurns():F1}\n");
+            AppendTo(r, $"平均戦闘数 : {summary.AvgBattles():F1}\n\n");
+
+            AppendTo(r, "--- 勢力別勝率 ---\n", Color.FromArgb(100, 200, 255));
+            var wins = summary.WinsByClan();
+            foreach (var clan in _world.Clans)
+            {
+                wins.TryGetValue(clan.Id, out int w);
+                double pct = summary.TotalRuns > 0 ? w * 100.0 / summary.TotalRuns : 0;
+                AppendTo(r, $"  {clan.Name,-8} {w,3}勝  {pct:F1}%\n",
+                    pct >= 50 ? Color.FromArgb(100, 255, 150) : Color.White);
+            }
+            int draws = summary.TotalRuns - wins.Values.Sum();
+            if (draws > 0) AppendTo(r, $"  引き分け  {draws,3}回\n", Color.Gray);
+            AppendTo(r, "\n");
+
+            AppendTo(r, "--- 性格別統計 ---\n", Color.FromArgb(100, 200, 255));
+            foreach (var (_, ps) in summary.StatsByPersonality().OrderBy(x => x.Key))
+            {
+                double refPct = ps.TotalOfficers > 0 ? ps.RefusalCount * 100.0 / ps.TotalOfficers : 0;
+                double indPct = ps.TotalOfficers > 0 ? ps.IndependentCount * 100.0 / ps.TotalOfficers : 0;
+                AppendTo(r, $"  {ps.Personality,-12} 拒否:{refPct:F1}%  独断:{indPct:F1}%\n",
+                    Color.FromArgb(200, 160, 255));
+            }
+        }
+
+        // ── ヘルパー ──────────────────────────────────────────────
+        private static void Add(Control parent, Control child) => parent.Controls.Add(child);
+
+        private static Button Btn(string text, Point loc, Color bg) => new()
+        {
+            Text = text, Location = loc, Size = new Size(100, 28),
+            BackColor = bg, ForeColor = Color.White,
+        };
+
+        private static RichTextBox Rtb(Point loc, Size size) => new()
+        {
+            Location = loc, Size = size,
+            BackColor = Color.FromArgb(15, 15, 30), ForeColor = Color.White,
+            Font = new Font("MS Gothic", 9f), ReadOnly = true,
+            BorderStyle = BorderStyle.FixedSingle, ScrollBars = RichTextBoxScrollBars.Vertical,
+        };
+
+        private static void AppendTo(RichTextBox rtb, string text, Color? color = null)
+        {
+            rtb.SelectionStart  = rtb.TextLength;
+            rtb.SelectionLength = 0;
+            rtb.SelectionColor  = color ?? Color.White;
+            rtb.AppendText(text);
         }
 
         protected override void OnFormClosing(FormClosingEventArgs e)

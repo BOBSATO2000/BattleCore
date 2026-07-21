@@ -18,6 +18,7 @@ namespace BattleCoreStudio
 
         private string _scenarioId      = "";
         private string? _currentSavePath = null;
+        private string  _scenarioPath    = "";
         private int?   _selectedArmyId  = null;
         private readonly Dictionary<int, (string Summary, IReadOnlyList<string> Factors)> _lastDecisions = new();
         private readonly DebugOverlay _overlay = new();
@@ -56,6 +57,7 @@ namespace BattleCoreStudio
             Text = $"BattleCoreStudio - {title}";
 
             _scenarioId      = Path.GetFileNameWithoutExtension(dlg.SelectedPath);
+            _scenarioPath    = dlg.SelectedPath;
             _currentSavePath = null;
 
             engine = BuildEngine(new SimulationContext(world), triggers);
@@ -182,7 +184,7 @@ namespace BattleCoreStudio
             btnAuto.Enabled = true;
             btnStop.Enabled = false;
             btnStep.Enabled = true;
-            using var dlg = new frSimRunner(engine, world);
+            using var dlg = new frSimRunner(engine, world, _scenarioPath);
             dlg.ShowDialog(this);
             UpdateUI();
         }
