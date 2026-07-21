@@ -38,5 +38,12 @@ namespace BattleCore.Simulation
             Time = new GameTime();
             World = world;
         }
+
+        /// <summary>SaveSystem からの復元用。外部で構築した GameTime を渡す。</summary>
+        public SimulationContext(WorldState world, GameTime time)
+        {
+            Time = time;
+            World = world;
+        }
     }
 }

@@ -28,6 +28,17 @@ namespace BattleCore.Simulation
         }
 
         /// <summary>
+        /// セーブデータから状態を復元する。SaveSystem から呼ぶ。
+        /// </summary>
+        public void RestoreFrom(int tick, int year, Season season, Weather weather)
+        {
+            Tick    = tick;
+            Year    = year;
+            Season  = season;
+            Weather = weather;
+        }
+
+        /// <summary>
         /// 時間を1ステップ進める。季節・天気を更新する。
         /// 天気遷移確率: Sunny→Rain 25%、Rain→Fog 20%、Fog→Sunny 50%、それ以外は維持。
         /// </summary>
