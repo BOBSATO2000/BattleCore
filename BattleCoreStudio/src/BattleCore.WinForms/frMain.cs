@@ -176,6 +176,17 @@ namespace BattleCoreStudio
 
         private void menuExit_Click(object sender, EventArgs e) => Application.Exit();
 
+        private void menuSimRun_Click(object sender, EventArgs e)
+        {
+            autoTimer.Stop();
+            btnAuto.Enabled = true;
+            btnStop.Enabled = false;
+            btnStep.Enabled = true;
+            using var dlg = new frSimRunner(engine, world);
+            dlg.ShowDialog(this);
+            UpdateUI();
+        }
+
         private void SaveToFile(string path)
         {
             try

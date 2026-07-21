@@ -21,6 +21,8 @@ namespace BattleCoreStudio
             menuLoad      = new ToolStripMenuItem();
             menuSep       = new ToolStripSeparator();
             menuExit      = new ToolStripMenuItem();
+            menuSim       = new ToolStripMenuItem();
+            menuSimRun    = new ToolStripMenuItem();
             btnStep       = new Button();
             btnAuto       = new Button();
             btnStop       = new Button();
@@ -41,9 +43,9 @@ namespace BattleCoreStudio
             SuspendLayout();
 
             // menuStrip
-            menuStrip.Items.AddRange(new ToolStripItem[] { menuFile });
+            menuStrip.Items.AddRange(new ToolStripItem[] { menuFile, menuSim });
             menuStrip.Location = new Point(0, 0);
-            menuStrip.Size     = new Size(796, 24);
+            menuStrip.Size     = new Size(1096, 24);
 
             // menuFile
             menuFile.Text = "ファイル(&F)";
@@ -74,6 +76,15 @@ namespace BattleCoreStudio
             // menuExit
             menuExit.Text  = "終了(&X)";
             menuExit.Click += menuExit_Click;
+
+            // menuSim
+            menuSim.Text = "シミュレーション(&S)";
+            menuSim.DropDownItems.AddRange(new ToolStripItem[] { menuSimRun });
+
+            // menuSimRun
+            menuSimRun.Text         = "自動実行(&R)...";
+            menuSimRun.ShortcutKeys = Keys.Control | Keys.R;
+            menuSimRun.Click       += menuSimRun_Click;
 
             // btnStep
             btnStep.Location = new Point(12, 36);
@@ -224,5 +235,7 @@ namespace BattleCoreStudio
         private Label       lblEvents;
         private Label       lblDebug;
         private RichTextBox rtbDebug;
+        private ToolStripMenuItem menuSim;
+        private ToolStripMenuItem menuSimRun;
     }
 }
