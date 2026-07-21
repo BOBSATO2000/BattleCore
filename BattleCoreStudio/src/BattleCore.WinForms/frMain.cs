@@ -72,10 +72,11 @@ namespace BattleCoreStudio
             SimulationContext context,
             System.Collections.Generic.List<BattleCore.Scenario.EventTriggerData>? triggers = null)
         {
+            var aiParams = BattleCore.AI.AiParamsLoader.LoadFromBaseDir();
             var eng = new SimulationEngine(context);
             eng.Register(new VisionSystem());
             eng.Register(new CastleSystem());
-            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
+            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy(), new BattleCore.AI.OfficerDecision(aiParams)));
             eng.Register(new CommandExecutionSystem());
             eng.Register(new MovementSystem());
             eng.Register(new BattleSystem());

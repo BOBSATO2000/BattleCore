@@ -266,11 +266,13 @@ namespace BattleCoreStudio
         private SimulationEngine BuildBatchEngine(int? seed)
         {
             var (world, _, triggers) = ScenarioLoader.Load(_scenarioPath);
+            var aiParams = BattleCore.AI.AiParamsLoader.LoadFromBaseDir();
             var ctx = new SimulationContext(world, new BattleCore.Simulation.GameTime(seed));
             var eng = new SimulationEngine(ctx);
             eng.Register(new VisionSystem());
             eng.Register(new CastleSystem());
-            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy()));
+            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy(),
+                new BattleCore.AI.OfficerDecision(aiParams)));
             eng.Register(new CommandExecutionSystem());
             eng.Register(new MovementSystem());
             eng.Register(new BattleSystem());
@@ -313,8 +315,11 @@ namespace BattleCoreStudio
             var r = rtbBatch;
             r.Clear();
             AppendTo(r, $"=== Batch Result ({summary.TotalRuns}回) ===\n", Color.FromArgb(180, 180, 255));
-            AppendTo(r, $"平均ターン : {summary.AvgTurns():F1}\n");
-            AppendTo(r, $"平均戦闘数 : {summary.AvgBattles():F1}\n\n");
+
+            var turnStats   = summary.CalcStats(x => x.TurnsExecuted);
+            var battleStats = summary.CalcStats(x => x.BattleCount);
+            AppendTo(r, $"勝利ターン : {turnStats}\n");
+            AppendTo(r, $"戦闘回数 : {battleStats}\n\n");
 
             AppendTo(r, "--- 勢力別勝率 ---\n", Color.FromArgb(100, 200, 255));
             var wins = summary.WinsByClan();
@@ -337,6 +342,15 @@ namespace BattleCoreStudio
                 AppendTo(r, $"  {ps.Personality,-12} 拒否:{refPct:F1}%  独断:{indPct:F1}%\n",
                     Color.FromArgb(200, 160, 255));
             }
+            AppendTo(r, "\n");
+
+            // 現在のAIパラメータ表示
+            var aiParams = BattleCore.AI.AiParamsLoader.LoadFromBaseDir();
+            AppendTo(r, "--- AIパラメータ (ai_params.json) ---\n", Color.FromArgb(100, 200, 255));
+            AppendTo(r, $"  拒否忠誠閘値    : {aiParams.RefusalLoyaltyThreshold}\n", Color.FromArgb(140, 140, 140));
+            AppendTo(r, $"  慎重撤退兵力閘値  : {aiParams.CautiousRetreatSoldiers}\n", Color.FromArgb(140, 140, 140));
+            AppendTo(r, $"  独断行動忠誠閘値  : {aiParams.IndependentActionLoyalty}\n", Color.FromArgb(140, 140, 140));
+            AppendTo(r, $"  不満反感閘値    : {aiParams.DissatisfiedDislikeThreshold}\n", Color.FromArgb(140, 140, 140));
         }
 
         // ── ヘルパー ──────────────────────────────────────────────

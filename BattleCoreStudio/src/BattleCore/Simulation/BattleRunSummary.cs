@@ -42,6 +42,22 @@ namespace BattleCore.Simulation
         public double AvgBattles()
             => _records.Count == 0 ? 0 : _records.Average(r => r.BattleCount);
 
+        /// <summary>指定フィールドの統計（平均/最小/最大/標準偏差）を返す。</summary>
+        public FieldStats CalcStats(Func<BattleRunRecord, int> selector)
+        {
+            if (_records.Count == 0) return new FieldStats();
+            var values = _records.Select(r => (double)selector(r)).ToList();
+            double avg  = values.Average();
+            double std  = Math.Sqrt(values.Average(v => (v - avg) * (v - avg)));
+            return new FieldStats
+            {
+                Avg = avg,
+                Min = (int)values.Min(),
+                Max = (int)values.Max(),
+                StdDev = std,
+            };
+        }
+
         /// <summary>CSV全行（ヘッダー含む）を返す。</summary>
         public IEnumerable<string> ToCsvLines(Func<int?, string> clanName)
         {
@@ -58,5 +74,14 @@ namespace BattleCore.Simulation
         public int    RefusalCount   { get; set; }
         public int    IndependentCount { get; set; }
         public int    DeathCount     { get; set; }
+    }
+
+    public sealed class FieldStats
+    {
+        public double Avg    { get; init; }
+        public int    Min    { get; init; }
+        public int    Max    { get; init; }
+        public double StdDev { get; init; }
+        public override string ToString() => $"{Avg:F1} (min:{Min} max:{Max} σ:{StdDev:F1})";
     }
 }

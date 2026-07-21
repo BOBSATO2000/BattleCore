@@ -41,6 +41,11 @@ namespace BattleCore.AI
             DissatisfiedDislikeThreshold = dissatisfiedDislikeThreshold;
         }
 
+        /// <summary>AiParamsから構築する。</summary>
+        public OfficerDecision(AiParams p)
+            : this(p.RefusalLoyaltyThreshold, p.CautiousRetreatSoldiers,
+                   p.IndependentActionLoyalty, p.DissatisfiedDislikeThreshold) { }
+
         /// <summary>
         /// 元の命令リストを武将の意思で評価し、DecisionResult のリストを返す。
         /// 各結果は Command（null=拒否）・Reason・Accepted・Event を持つ。
