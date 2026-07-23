@@ -310,9 +310,10 @@ namespace BattleCoreStudio
                         if (selArmy != null && selArmy.ClanId == _playerClanId && selArmy.Soldiers > 0
                             && playerCommander != null)
                         {
-                            playerCommander.EnqueueOrder(new CommanderOrder(
-                                new MoveArmyCommand(selArmy.Id, clickedHex.Id, BattleCore.Commands.DecisionReason.Advance),
-                                priority: 10, OrderLifetime.Persistent));
+                            playerCommander.EnqueueIntent(new Intent(
+                                selArmy.Id, IntentType.MoveTo,
+                                priority: 10, OrderLifetime.Persistent,
+                                targetHexId: clickedHex.Id));
                             lstEvents.Items.Insert(0,
                                 $"[命令] {GetOfficerName(selArmy)} → Hex{clickedHex.Id} へ移動");
                         }
@@ -343,33 +344,34 @@ namespace BattleCoreStudio
             menu.Items.Add($"【{officerName}】への命令").Enabled = false;
             menu.Items.Add(new ToolStripSeparator());
 
-            void Enqueue(string label, ICommand cmd,
-                int priority = 10, OrderLifetime lifetime = OrderLifetime.OneShot)
+            void Issue(string label, IntentType type,
+                int priority = 10, OrderLifetime lifetime = OrderLifetime.OneShot,
+                int? hexId = null, int? castleId = null)
             {
                 var item = menu.Items.Add(label);
                 item.Click += (_, _) =>
                 {
-                    playerCommander.EnqueueOrder(new CommanderOrder(cmd, priority, lifetime));
+                    playerCommander.EnqueueIntent(
+                        new Intent(army.Id, type, priority, lifetime, hexId, castleId));
                     lstEvents.Items.Insert(0, $"[命令] {officerName}：{label}");
                 };
             }
 
             // 直接命令
             if (targetHexId != army.CurrentHexId)
-                Enqueue($"Hex{targetHexId} へ移動",
-                    new MoveArmyCommand(army.Id, targetHexId, BattleCore.Commands.DecisionReason.Advance),
-                    priority: 10, lifetime: OrderLifetime.Persistent);
-            Enqueue("待機", new WaitOrder(army.Id));
+                Issue($"Hex{targetHexId} へ移動",
+                    IntentType.MoveTo, priority: 10, lifetime: OrderLifetime.Persistent, hexId: targetHexId);
+            Issue("待機", IntentType.Wait);
 
             menu.Items.Add(new ToolStripSeparator());
 
-            // 方針命令（AIが具体行動を決定）
-            Enqueue("⚔ 攻撃（最寄り敵城へ）",  new BattleCore.Commands.DefendOrder(army.Id));  // Attack は AICommander に委ねる
-            Enqueue("🛡 防御態勢",              new DefendOrder(army.Id));
-            Enqueue("🏃 撤退（最寄り自城へ）",  new RetreatOrder(army.Id));
-            Enqueue("🔭 偵察",                  new ScoutOrder(army.Id));
-            Enqueue("🌾 補給優先",              new SupplyOrder(army.Id));
-            Enqueue("🏗 築城",                  new FortifyOrder(army.Id));
+            // 方針命令（具体行動はCommanderSystemが決定）
+            Issue("⚔ 攻撃（最寄り敵城へ）",  IntentType.Attack);
+            Issue("🛡 防御態勢",              IntentType.Defend);
+            Issue("🏃 撤退（最寄り自城へ）",  IntentType.Retreat);
+            Issue("🔭 偵察",                  IntentType.Scout);
+            Issue("🌾 補給優先",              IntentType.Supply);
+            Issue("🏗 築城",                  IntentType.Fortify);
 
             var nearbyCastle = world.Castles
                 .Where(c => c.OwnerClanId != army.ClanId)
@@ -381,7 +383,20 @@ namespace BattleCoreStudio
                 })
                 .FirstOrDefault();
             if (nearbyCastle != null)
-                Enqueue($"🏯 「{nearbyCastle.Name}」を包囲", new SiegeOrder(army.Id, nearbyCastle.Id));
+                Issue($"🏯 「{nearbyCastle.Name}」を包囲",
+                    IntentType.Siege, castleId: nearbyCastle.Id);
+
+            // 継続命令キャンセル
+            if (playerCommander.HasPersistentIntent(army.Id))
+            {
+                menu.Items.Add(new ToolStripSeparator());
+                var cancel = menu.Items.Add("❌ 継続命令をキャンセル");
+                cancel.Click += (_, _) =>
+                {
+                    playerCommander.CancelIntent(army.Id);
+                    lstEvents.Items.Insert(0, $"[命令取消] {officerName}の継続命令を解除");
+                };
+            }
 
             menu.Show(pnlMap, screenPos);
         }

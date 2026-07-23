@@ -1,6 +1,7 @@
 using BattleCore.AI;
 using BattleCore.Commands;
 using BattleCore.Entities;
+using BattleCore.Map;
 using BattleCore.Navigation;
 using BattleCore.Player;
 using BattleCore.Simulation;
@@ -12,17 +13,18 @@ namespace BattleCore.Systems
 {
     /// <summary>
     /// AICommander / PlayerCommander を統一処理するSystem。
-    /// ClanDecisionSystem と PlayerDecisionSystem を置き換える。
     ///
     /// フロー：
-    ///   ICommander.GenerateOrders()
-    ///       ↓ Priority 比較（AI補給割り込みなど）
-    ///   OfficerDecision（忠誠・性格フィルタ）
+    ///   ICommander.GenerateIntents()  ← 「何をしたいか」だけ
+    ///       ↓ Priority 比較（AI緊急割り込みなど）
+    ///   IntentToCommand()             ← 「どう実行するか」をここで決定
+    ///       ↓
+    ///   OfficerDecision               ← 忠誠・性格フィルタ
     ///       ↓
     ///   CommandQueue
     ///
     /// Priority ルール：
-    ///   100 = AI緊急割り込み（Food=0, Morale=0 など）
+    ///   100 = AI緊急割り込み（Food=0, Morale≤10）
     ///    50 = AI通常行動
     ///    10 = プレイヤー命令（デフォルト）
     ///     0 = 待機
@@ -47,25 +49,27 @@ namespace BattleCore.Systems
             {
                 if (!_commanders.TryGetValue(clan.Id, out var commander)) continue;
 
-                var rawOrders = commander.GenerateOrders(clan, context.World).ToList();
-                if (rawOrders.Count == 0) continue;
+                var intents = commander.GenerateIntents(clan, context.World).ToList();
 
-                // AI緊急割り込み：Food=0 / Morale=0 の部隊は補給・撤退を Priority=100 で挿入
-                var emergencyOrders = BuildEmergencyOrders(clan, context.World);
+                // AI緊急割り込み（Priority=100）を追加
+                var emergency = BuildEmergencyIntents(clan, context.World);
 
-                // 部隊ごとに最高 Priority の命令を選ぶ
-                var allOrders = rawOrders.Concat(emergencyOrders)
-                    .GroupBy(o => GetArmyId(o.Command))
-                    .SelectMany<IGrouping<int?, CommanderOrder>, CommanderOrder>(g =>
-                    {
-                        if (g.Key == null) return g.ToList();
-                        var best = g.OrderByDescending(o => o.Priority).First();
-                        return new[] { best };
-                    })
+                // 部隊ごとに最高 Priority の意図を選ぶ
+                var resolved = intents.Concat(emergency)
+                    .GroupBy(i => i.ArmyId)
+                    .Select(g => g.OrderByDescending(i => i.Priority).First())
                     .ToList();
 
-                // OfficerDecision を通す
-                var commands = allOrders.Select(o => o.Command).ToList();
+                if (resolved.Count == 0) continue;
+
+                // Intent → ICommand に変換
+                var commands = resolved
+                    .Select(i => IntentToCommand(i, context.World))
+                    .Where(c => c != null)
+                    .Cast<ICommand>()
+                    .ToList();
+
+                // OfficerDecision を通す（忠誠・性格フィルタ）
                 foreach (var result in _officerDecision.Evaluate(commands, clan, context.World))
                 {
                     if (result.Accepted && result.Command != null)
@@ -93,33 +97,80 @@ namespace BattleCore.Systems
         }
 
         /// <summary>
-        /// 緊急状態の部隊に対して AI が自動割り込む命令を生成する。
-        /// Food=0 → SupplyOrder(Priority=100)
-        /// Morale≤10 → RetreatOrder(Priority=100)
+        /// Intent（何をしたいか）→ ICommand（どう実行するか）に変換する。
+        /// ゲームルール（経路探索・最寄り城など）はここで解決する。
         /// </summary>
-        private static IEnumerable<CommanderOrder> BuildEmergencyOrders(Entities.Clan clan, WorldState world)
+        private ICommand? IntentToCommand(Intent intent, WorldState world)
+        {
+            var army = world.GetArmyById(intent.ArmyId);
+            if (army == null || army.Soldiers == 0) return null;
+
+            return intent.Type switch
+            {
+                IntentType.MoveTo when intent.TargetHexId.HasValue
+                    => new MoveArmyCommand(army.Id, intent.TargetHexId.Value, DecisionReason.Advance),
+
+                IntentType.Attack
+                    => BuildAttackCommand(army, world),
+
+                IntentType.Defend
+                    => new DefendOrder(army.Id),
+
+                IntentType.Retreat
+                    => new RetreatOrder(army.Id),
+
+                IntentType.Siege when intent.TargetCastleId.HasValue
+                    => new SiegeOrder(army.Id, intent.TargetCastleId.Value),
+
+                IntentType.Scout
+                    => new ScoutOrder(army.Id),
+
+                IntentType.Supply
+                    => new SupplyOrder(army.Id),
+
+                IntentType.Fortify
+                    => new FortifyOrder(army.Id),
+
+                IntentType.Wait
+                    => new WaitOrder(army.Id),
+
+                _ => null,
+            };
+        }
+
+        private ICommand? BuildAttackCommand(Army army, WorldState world)
+        {
+            var currentHex = world.Map.GetHexById(army.CurrentHexId);
+            if (currentHex == null) return null;
+
+            var target = world.Castles
+                .Where(c => c.OwnerClanId != army.ClanId)
+                .Select(c => new { c.HexId, Hex = world.Map.GetHexById(c.HexId) })
+                .Where(x => x.Hex != null)
+                .OrderBy(x => HexDistance.Calculate(currentHex, x.Hex!))
+                .FirstOrDefault();
+
+            if (target == null) return null;
+            var path = _pathFinder.FindPath(world.Map, army.CurrentHexId, target.HexId);
+            return path.Count > 1
+                ? new MoveArmyCommand(army.Id, path[1], DecisionReason.TargetCastle)
+                : null;
+        }
+
+        /// <summary>
+        /// 緊急状態の部隊に対してAIが自動割り込む意図を生成する。
+        /// Food=0 → Supply(Priority=100)
+        /// Morale≤10 → Retreat(Priority=100)
+        /// </summary>
+        private static IEnumerable<Intent> BuildEmergencyIntents(Clan clan, WorldState world)
         {
             foreach (var army in world.Armies.Where(a => a.ClanId == clan.Id && a.Soldiers > 0))
             {
                 if (army.Food <= 0)
-                    yield return new CommanderOrder(new SupplyOrder(army.Id), priority: 100, OrderLifetime.OneShot);
+                    yield return new Intent(army.Id, IntentType.Supply,  priority: 100);
                 else if (army.Morale <= 10)
-                    yield return new CommanderOrder(new RetreatOrder(army.Id), priority: 100, OrderLifetime.OneShot);
+                    yield return new Intent(army.Id, IntentType.Retreat, priority: 100);
             }
         }
-
-        private static int? GetArmyId(ICommand cmd) => cmd switch
-        {
-            MoveArmyCommand m => m.ArmyId,
-            MoveOrder       m => m.ArmyId,
-            DefendOrder     d => d.ArmyId,
-            RetreatOrder    r => r.ArmyId,
-            ScoutOrder      s => s.ArmyId,
-            SupplyOrder     s => s.ArmyId,
-            FortifyOrder    f => f.ArmyId,
-            SiegeOrder      s => s.ArmyId,
-            WaitOrder       w => w.ArmyId,
-            _                 => null,
-        };
     }
 }

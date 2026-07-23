@@ -1,67 +1,53 @@
-using BattleCore.Commands;
 using BattleCore.Entities;
-using BattleCore.Map;
-using BattleCore.Navigation;
 using BattleCore.World;
 using System.Collections.Generic;
-using System.Linq;
 
 namespace BattleCore.Player
 {
     /// <summary>
-    /// プレイヤー（大名）の命令生成者。
-    /// UI から EnqueueOrder() で命令を受け取り、GenerateOrders() で返す。
+    /// プレイヤー（大名）の意図生成者。
+    /// UI から EnqueueIntent() で意図を受け取り、GenerateIntents() で返す。
     ///
     /// ルール：
-    /// - 入力がなければ空リストを返す（AIは動かない）
-    /// - Persistent 命令は目標到達 or キャンセルまで毎Tick再発行する
-    /// - AI割り込み（Food=0 など）は CommanderSystem 側で Priority 比較して処理する
+    /// - 入力がなければ空リストを返す（その部隊はAI命令なし）
+    /// - Persistent 意図は目標到達 or キャンセルまで毎Tick再発行する
+    /// - AI緊急割り込みは CommanderSystem 側で Priority 比較して処理する
     /// </summary>
     public sealed class PlayerCommander : ICommander
     {
         public int ClanId { get; }
 
-        // UI から積まれた新規命令
-        private readonly Queue<CommanderOrder> _incoming = new();
-
-        // 継続中の Persistent 命令（ArmyId → CommanderOrder）
-        private readonly Dictionary<int, CommanderOrder> _persistent = new();
-
-        private readonly IPathFinder _pathFinder = new HexPathFinder();
+        private readonly Queue<Intent>            _incoming   = new();
+        private readonly Dictionary<int, Intent>  _persistent = new();  // ArmyId → Intent
 
         public PlayerCommander(int clanId) => ClanId = clanId;
 
-        /// <summary>UIから呼ぶ。命令をキューに積む。</summary>
-        public void EnqueueOrder(CommanderOrder order) => _incoming.Enqueue(order);
+        /// <summary>UIから呼ぶ。意図をキューに積む。</summary>
+        public void EnqueueIntent(Intent intent) => _incoming.Enqueue(intent);
 
-        /// <summary>指定部隊の継続命令をキャンセルする。</summary>
-        public void CancelOrder(int armyId) => _persistent.Remove(armyId);
+        /// <summary>指定部隊の継続意図をキャンセルする。</summary>
+        public void CancelIntent(int armyId) => _persistent.Remove(armyId);
 
-        /// <summary>未処理の新規命令数（UI表示用）。</summary>
+        /// <summary>未処理の新規意図数（UI表示用）。</summary>
         public int PendingCount => _incoming.Count;
 
-        public IEnumerable<CommanderOrder> GenerateOrders(Clan clan, WorldState world)
+        /// <summary>指定部隊に継続意図があるか（UI表示用）。</summary>
+        public bool HasPersistentIntent(int armyId) => _persistent.ContainsKey(armyId);
+
+        public IEnumerable<Intent> GenerateIntents(Clan clan, WorldState world)
         {
-            // 新規命令を取り込む（同部隊の既存 Persistent を上書き）
+            // 新規意図を取り込む（同部隊の既存 Persistent を上書き）
             while (_incoming.Count > 0)
             {
-                var order = _incoming.Dequeue();
-                var armyId = GetArmyId(order.Command);
-                if (armyId.HasValue)
-                {
-                    if (order.Lifetime == OrderLifetime.Persistent)
-                        _persistent[armyId.Value] = order;
-                    yield return order;
-                }
-                else
-                {
-                    yield return order;
-                }
+                var intent = _incoming.Dequeue();
+                if (intent.Lifetime == OrderLifetime.Persistent)
+                    _persistent[intent.ArmyId] = intent;
+                yield return intent;
             }
 
-            // Persistent 命令を継続発行（目標到達済みなら削除）
+            // Persistent 意図を継続発行（目標到達済み or 全滅なら削除）
             var toRemove = new List<int>();
-            foreach (var (armyId, order) in _persistent)
+            foreach (var (armyId, intent) in _persistent)
             {
                 var army = world.GetArmyById(armyId);
                 if (army == null || army.Soldiers == 0)
@@ -69,31 +55,17 @@ namespace BattleCore.Player
                     toRemove.Add(armyId);
                     continue;
                 }
-
-                // 目標到達判定（MoveArmyCommand の場合）
-                if (order.Command is MoveArmyCommand move && army.CurrentHexId == move.DestinationHexId)
+                // MoveTo: 目標Hexに到達したら終了
+                if (intent.Type == IntentType.MoveTo
+                    && intent.TargetHexId.HasValue
+                    && army.CurrentHexId == intent.TargetHexId.Value)
                 {
                     toRemove.Add(armyId);
                     continue;
                 }
-
-                yield return order;
+                yield return intent;
             }
             foreach (var id in toRemove) _persistent.Remove(id);
         }
-
-        private static int? GetArmyId(ICommand cmd) => cmd switch
-        {
-            MoveArmyCommand m  => m.ArmyId,
-            MoveOrder       m  => m.ArmyId,
-            DefendOrder     d  => d.ArmyId,
-            RetreatOrder    r  => r.ArmyId,
-            ScoutOrder      s  => s.ArmyId,
-            SupplyOrder     s  => s.ArmyId,
-            FortifyOrder    f  => f.ArmyId,
-            SiegeOrder      s  => s.ArmyId,
-            WaitOrder       w  => w.ArmyId,
-            _                  => null,
-        };
     }
 }
