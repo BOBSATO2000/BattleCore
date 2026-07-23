@@ -7,27 +7,27 @@ namespace BattleCore.Map
     /// </summary>
     public class Hex
     {
-        /// <summary>Hexを一意に識別するID。GameMap.GetHexById() で検索する。</summary>
-        public int Id { get; }
-
-        /// <summary>X座標（東西方向）。</summary>
-        public int X { get; }
-
-        /// <summary>Y座標（南北方向）。</summary>
-        public int Y { get; }
-
-        /// <summary>
-        /// 地形種別。MovementSystem が移動可否の判定に使用する。
-        /// Mountain は移動不可。
-        /// </summary>
+        public int Id      { get; }
+        public int X       { get; }
+        public int Y       { get; }
         public TerrainType Terrain { get; }
 
-        public Hex(int id, int x, int y, TerrainType terrain = TerrainType.Plain)
+        /// <summary>
+        /// 高度（0〜3）。
+        /// 0=平地・谷、1=丘陵、2=高台、3=山頂。
+        /// MovementSystem: 登坂AP+1、下り無消費。
+        /// VisionSystem: 高いほど視界+Height。
+        /// BattleModifier: 高所攻撃+20%、高所防御+10%。
+        /// </summary>
+        public int Height { get; }
+
+        public Hex(int id, int x, int y, TerrainType terrain = TerrainType.Plain, int height = 0)
         {
-            Id = id;
-            X = x;
-            Y = y;
+            Id      = id;
+            X       = x;
+            Y       = y;
             Terrain = terrain;
+            Height  = System.Math.Clamp(height, 0, 3);
         }
     }
 }

@@ -7,22 +7,38 @@ namespace BattleCore.Entities
     /// </summary>
     public class Relationship : Entity
     {
-        /// <summary>関係の起点となる武将ID。</summary>
+        /// <summary>
+		/// 関係の起点となる武将ID。
+		/// </summary>
         public int FromOfficerId { get; }
 
-        /// <summary>関係の対象となる武将ID。</summary>
+        /// <summary>
+		/// 関係の対象となる武将ID。
+		/// </summary>
         public int ToOfficerId { get; }
 
-        /// <summary>信頼度。高いほど協力・援護行動を取りやすい。</summary>
+        /// <summary>
+		/// 信頼度。高いほど協力・援護行動を取りやすい。
+		/// </summary>
         public int Trust { get; set; }
 
-        /// <summary>尊敬度。命令への従順さに影響する。</summary>
+        /// <summary>
+		/// 尊敬度。命令への従順さに影響する。
+		/// </summary>
         public int Respect { get; set; }
 
-        /// <summary>反感度。高いほど対立・妨害行動を取りやすい。</summary>
+        /// <summary>
+		/// 反感度。高いほど対立・妨害行動を取りやすい。
+		/// </summary>
         public int Dislike { get; set; }
 
-        public Relationship(int id, int fromOfficerId, int toOfficerId)
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		/// <param name="id">	Relationship エンティティ自身のID。</param>
+		/// <param name="fromOfficerId">関係の起点となる武将のID（感情を持つ側）</param>
+		/// <param name="toOfficerId">関係の対象となる武将のID（感情を向けられる側）</param>
+		public Relationship(int id, int fromOfficerId, int toOfficerId)
             : base(id)
         {
             FromOfficerId = fromOfficerId;

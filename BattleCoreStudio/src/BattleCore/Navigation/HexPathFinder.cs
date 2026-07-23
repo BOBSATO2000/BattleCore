@@ -12,6 +12,7 @@ namespace BattleCore.Navigation
         private static int TerrainCost(TerrainType terrain) => terrain switch
         {
             TerrainType.Forest => 2,
+            TerrainType.River  => 3,
             _ => 1,
         };
 
@@ -36,6 +37,7 @@ namespace BattleCore.Navigation
             var gCost    = new Dictionary<int, int>  { [startHexId] = 0 };
             var previous = new Dictionary<int, int?> { [startHexId] = null };
             var stepCostMap = new Dictionary<int, int> { [startHexId] = 0 };
+            var closed   = new HashSet<int>();
 
             var open = new SortedSet<(int f, int id)>(Comparer<(int f, int id)>.Create(
                 (a, b) => a.f != b.f ? a.f.CompareTo(b.f) : a.id.CompareTo(b.id)));
@@ -46,6 +48,9 @@ namespace BattleCore.Navigation
                 var (_, current) = open.Min;
                 open.Remove(open.Min);
 
+                if (closed.Contains(current)) continue;
+                closed.Add(current);
+
                 if (current == targetHexId)
                     return BuildPathResult(previous, stepCostMap, targetHexId);
 
@@ -53,6 +58,7 @@ namespace BattleCore.Navigation
                 {
                     if (neighbor.Terrain == TerrainType.Mountain && neighbor.Id != targetHexId)
                         continue;
+                    if (closed.Contains(neighbor.Id)) continue;
 
                     int step = TerrainCost(neighbor.Terrain);
                     int newG = gCost[current] + step;

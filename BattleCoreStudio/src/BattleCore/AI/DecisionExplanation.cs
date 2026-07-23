@@ -7,8 +7,13 @@ namespace BattleCore.AI
     /// </summary>
     public sealed class DecisionExplanation
     {
+        /// <summary>判断の理由分類。</summary>
         public DecisionReason        Reason  { get; init; }
+
+        /// <summary>判断の要約文。UI表示・ログに使用する。</summary>
         public string                Summary { get; init; } = "";
+
+        /// <summary>判断に影響した要因のリスト。デバッグパネルに表示する。</summary>
         public IReadOnlyList<string> Factors { get; init; } = [];
 
         public static DecisionExplanation Create(

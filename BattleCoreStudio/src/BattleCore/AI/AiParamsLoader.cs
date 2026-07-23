@@ -10,6 +10,7 @@ namespace BattleCore.AI
     {
         private static readonly JsonSerializerOptions _opts = new() { PropertyNameCaseInsensitive = true };
 
+        /// <summary>指定パスの JSON ファイルを読み込む。ファイルが存在しない・パース失敗時はデフォルト値を返す。</summary>
         public static AiParams Load(string path)
         {
             if (!File.Exists(path)) return AiParams.Default;
@@ -24,6 +25,7 @@ namespace BattleCore.AI
             }
         }
 
+        /// <summary>実行ファイルと同じディレクトリの ai_params.json を読み込む。</summary>
         public static AiParams LoadFromBaseDir()
             => Load(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ai_params.json"));
     }

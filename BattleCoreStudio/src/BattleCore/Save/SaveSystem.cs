@@ -121,7 +121,8 @@ namespace BattleCore.Save
                 {
                     Id = a.Id, ClanId = a.ClanId, OfficerId = a.OfficerId,
                     CurrentHexId = a.CurrentHexId, DestinationHexId = a.DestinationHexId,
-                    Soldiers = a.Soldiers, MoveCooldown = a.MoveCooldown,
+                    Soldiers = a.Soldiers, MaxSoldiers = a.MaxSoldiers,
+                    MoveCooldown = a.MoveCooldown,
                     ActionPoints = a.ActionPoints,
                 });
 
@@ -135,7 +136,7 @@ namespace BattleCore.Save
 
             foreach (var al in world.Alliances)
                 snap.Alliances.Add(new AllianceSnapshot
-                    { ClanId1 = al.ClanId1, ClanId2 = al.ClanId2 });
+                    { ClanId1 = al.ClanId1, ClanId2 = al.ClanId2, RemainingTicks = al.RemainingTicks });
 
             foreach (var r in world.Relationships)
                 snap.Relationships.Add(new RelationshipSnapshot
@@ -146,7 +147,7 @@ namespace BattleCore.Save
 
             foreach (var m in world.Memberships)
                 snap.Memberships.Add(new MembershipSnapshot
-                    { OfficerId = m.OfficerId, ClanId = m.ClanId });
+                    { OfficerId = m.OfficerId, ClanId = m.ClanId, Loyalty = m.Loyalty });
 
             foreach (var h in world.Map.Hexes)
                 snap.Hexes.Add(new HexSnapshot
@@ -195,7 +196,8 @@ namespace BattleCore.Save
                 };
                 army.MoveTo(a.CurrentHexId);
                 if (a.DestinationHexId.HasValue) army.OrderMove(a.DestinationHexId.Value);
-                army.LoseSoldiers(1000 - a.Soldiers);
+                army.SetInitialSoldiers(a.MaxSoldiers);
+                army.SetSoldiers(a.Soldiers);
                 if (a.OfficerId.HasValue) army.AssignOfficer(a.OfficerId.Value);
                 world.Armies.Add(army);
             }
@@ -207,7 +209,7 @@ namespace BattleCore.Save
 
             int allianceId = 1;
             foreach (var al in snap.Alliances)
-                world.Alliances.Add(new Alliance(allianceId++, al.ClanId1, al.ClanId2, int.MaxValue));
+                world.Alliances.Add(new Alliance(allianceId++, al.ClanId1, al.ClanId2, al.RemainingTicks));
 
             foreach (var r in snap.Relationships)
             {
@@ -218,7 +220,11 @@ namespace BattleCore.Save
 
             int membershipId = 1;
             foreach (var m in snap.Memberships)
-                world.Memberships.Add(new Membership(membershipId++, m.OfficerId, m.ClanId));
+            {
+                var membership = new Membership(membershipId++, m.OfficerId, m.ClanId);
+                membership.Loyalty = m.Loyalty;
+                world.Memberships.Add(membership);
+            }
 
             foreach (var h in snap.Hexes)
             {

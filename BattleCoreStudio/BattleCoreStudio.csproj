@@ -24,6 +24,12 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<Compile Remove="**\*の競合コピー*" />
+		<EmbeddedResource Remove="**\*の競合コピー*" />
+		<None Remove="**\*の競合コピー*" />
+	</ItemGroup>
+
+	<ItemGroup>
 		<ProjectReference Include="src\BattleCore\BattleCore.csproj" />
 	</ItemGroup>
 

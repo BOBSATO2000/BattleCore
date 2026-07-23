@@ -12,10 +12,20 @@ namespace BattleCore.Debug
     /// </summary>
     public static class DebugPanelBuilder
     {
+        /// <summary>デバッグパネルの1行。表示テキストと色情報を保持する。</summary>
         public record DebugLine(string Text, DebugColor Color = DebugColor.Normal);
 
+        /// <summary>デバッグパネルの行色。UI層が色分け表示に使用する。</summary>
         public enum DebugColor { Normal, Header, Info, Good, Warn, Dim, Path, AI }
 
+        /// <summary>
+        /// 指定部隊のデバッグ情報行リストを構築する。
+        /// 部隊情報・AI判断・経路（A*）・Vision・CommandQueueを含む。
+        /// </summary>
+        /// <param name="armyId">表示対象の軍隊ID。</param>
+        /// <param name="world">現在の WorldState。</param>
+        /// <param name="context">現在の SimulationContext。</param>
+        /// <param name="lastDecisions">最終AI判断の要約・要因マップ。null の場合は表示なし。</param>
         public static IReadOnlyList<DebugLine> Build(
             int armyId,
             WorldState world,

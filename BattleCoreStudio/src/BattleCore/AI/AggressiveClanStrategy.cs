@@ -15,13 +15,30 @@ namespace BattleCore.AI
     /// </summary>
     public class AggressiveClanStrategy : IClanStrategy
     {
-        private readonly IPathFinder pathFinder = new HexPathFinder();
+        private readonly IPathFinder        pathFinder = new HexPathFinder();
+        private readonly TacticalEvaluator? evaluator;
+        private readonly StrategyEvaluator? strategyEvaluator;
 
         public int RetreatThreshold { get; }
 
+        /// <summary>
+        /// 標準コンストラクタ。TacticalEvaluator/StrategyEvaluator は無効（既存テスト互換）。
+        /// </summary>
         public AggressiveClanStrategy(int retreatThreshold = 300)
         {
-            RetreatThreshold = retreatThreshold;
+            RetreatThreshold  = retreatThreshold;
+            evaluator         = null;
+            strategyEvaluator = null;
+        }
+
+        /// <summary>
+        /// TacticalEvaluator + StrategyEvaluator を有効にするコンストラクタ。
+        /// </summary>
+        public AggressiveClanStrategy(int retreatThreshold, TacticalParams tacticalParams)
+        {
+            RetreatThreshold  = retreatThreshold;
+            evaluator         = new TacticalEvaluator(tacticalParams);
+            strategyEvaluator = new StrategyEvaluator();
         }
 
         public IEnumerable<ICommand> Decide(Clan clan, WorldState world)
@@ -39,6 +56,35 @@ namespace BattleCore.AI
                 var currentHex = world.Map.GetHexById(army.CurrentHexId);
                 if (currentHex == null) continue;
 
+                // Layer -1: 戦略評価（有効な場合のみ）
+                // TacticalLayer より先に Plan を更新するが、TacticalLayer が割り込める
+                CampaignPlan? plan = null;
+                if (strategyEvaluator != null)
+                    plan = strategyEvaluator.Evaluate(army, clan, world);
+
+                // Layer 0: 戦術評価（有効な場合のみ）
+                // TacticalLayer は StrategyLayer の Plan より優先される（食糧切れ・壊滅等）
+                if (evaluator != null)
+                {
+                    var tacticalOrder = evaluator.Evaluate(army, clan, world);
+                    if (tacticalOrder != null)
+                    {
+                        yield return tacticalOrder;
+                        continue;
+                    }
+                }
+
+                // Layer 1: 戦略計画に沿った移動
+                if (plan != null)
+                {
+                    var planPath = pathFinder.FindPath(world.Map, army.CurrentHexId, plan.TargetHexId);
+                    if (planPath.Count > 1)
+                    {
+                        yield return new MoveArmyCommand(army.Id, planPath[1], DecisionReason.Advance);
+                        continue;
+                    }
+                }
+
                 var visibleHexes = world.Visions.TryGetValue(army.Id, out var vision)
                     ? vision.VisibleHexes
                     : new HashSet<int>();
@@ -50,14 +96,30 @@ namespace BattleCore.AI
                              && visibleHexes.Contains(a.CurrentHexId))
                     .ToList();
 
+                // IsDecoy=true の敵軍を優先ターゲットにする（陽動効果）
+                var decoys = visibleEnemies.Where(e => e.IsDecoy).ToList();
+                if (decoys.Any()) visibleEnemies = decoys;
+
                 var visibleEnemyCastles = world.Castles
                     .Where(c => c.OwnerClanId != clan.Id
                              && visibleHexes.Contains(c.HexId))
                     .ToList();
 
-                // 視界内に敵がいなければ敵城方向へ前進（索敵行動）
+                // 視界内に敵がいなければIntelを参照し、最後に判明した敵位置へ向かう
                 if (!visibleEnemies.Any() && !visibleEnemyCastles.Any())
                 {
+                    var intelTarget = GetIntelTarget(army, clan, world, currentHex);
+                    if (intelTarget.HasValue)
+                    {
+                        var intelPath = pathFinder.FindPath(world.Map, army.CurrentHexId, intelTarget.Value);
+                        if (intelPath.Count > 1)
+                        {
+                            yield return new MoveArmyCommand(army.Id, intelPath[1], DecisionReason.Advance);
+                            continue;
+                        }
+                    }
+
+                    // Intelもなければ敵城方向へ前進（索敵行動）
                     var enemyCastles = world.Castles
                         .Where(c => c.OwnerClanId != clan.Id
                                  && !world.AreAllied(clan.Id, c.OwnerClanId))
@@ -155,6 +217,34 @@ namespace BattleCore.AI
                     visibleEnemies.Min(e =>
                         HexDistance.Calculate(h, world.Map.GetHexById(e.CurrentHexId)!)))
                 .FirstOrDefault()?.Id;
+        }
+
+        /// <summary>
+        /// Intel情報から最後に判明した敵位置を返す。
+        /// Visionで見えない場合に参照する。
+        /// </summary>
+        private static int? GetIntelTarget(Army army, Clan clan, WorldState world, Hex currentHex)
+        {
+            var knownEnemies = world.Intel
+                .Where(kv => kv.Key.ownerClanId == clan.Id)
+                .Select(kv => kv.Value)
+                .Where(d => world.Armies.Any(a =>
+                    a.Id == d.EnemyArmyId &&
+                    a.Soldiers > 0 &&
+                    a.ClanId != clan.Id))
+                .ToList();
+
+            if (!knownEnemies.Any()) return null;
+
+            return knownEnemies
+                .Select(d => new
+                {
+                    d.LastKnownHexId,
+                    Hex  = world.Map.GetHexById(d.LastKnownHexId),
+                })
+                .Where(x => x.Hex != null)
+                .OrderBy(x => HexDistance.Calculate(currentHex, x.Hex!))
+                .FirstOrDefault()?.LastKnownHexId;
         }
     }
 }

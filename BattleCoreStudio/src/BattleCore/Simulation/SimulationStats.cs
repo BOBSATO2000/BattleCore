@@ -7,14 +7,31 @@ namespace BattleCore.Simulation
     /// </summary>
     public sealed class SimulationStats
     {
+        /// <summary>実行済みターン数。</summary>
         public int TurnsExecuted    { get; private set; }
+
+        /// <summary>発生した戦闘数。</summary>
         public int BattleCount      { get; private set; }
+
+        /// <summary>発生した補給イベント数。</summary>
         public int SupplyCount      { get; private set; }
+
+        /// <summary>発生した裏切り数。</summary>
         public int BetrayalCount    { get; private set; }
+
+        /// <summary>発生した命令拒否数。</summary>
         public int RefusalCount     { get; private set; }
+
+        /// <summary>発生した独断行動数。</summary>
         public int IndependentCount { get; private set; }
+
+        /// <summary>発生した全イベント数。</summary>
         public int TotalEvents      { get; private set; }
+
+        /// <summary>勝利した勢力ID。null の場合は未終了または引き分け。</summary>
         public int? WinnerClanId    { get; private set; }
+
+        /// <summary>ゲーム終了理由のメッセージ。</summary>
         public string WinReason     { get; private set; } = "";
 
         /// <summary>発火したシナリオイベントID一覧。</summary>

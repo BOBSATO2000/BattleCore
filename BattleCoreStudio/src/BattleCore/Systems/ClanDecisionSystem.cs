@@ -23,12 +23,20 @@ namespace BattleCore.Systems
         private readonly IClanStrategy   strategy;
         private readonly OfficerDecision officerDecision;
 
+        /// <summary>
+        /// 戦略と OfficerDecision を注入するコンストラクタ。
+        /// officerDecision を省略するとデフォルト値で構築する。
+        /// </summary>
         public ClanDecisionSystem(IClanStrategy strategy, OfficerDecision? officerDecision = null)
         {
             this.strategy        = strategy;
             this.officerDecision = officerDecision ?? new OfficerDecision();
         }
 
+        /// <summary>
+        /// 各勢力のAI命令を生成し CommandQueue に積む。
+        /// 武将イベントは EventQueue に積む。IsPlayerControlled な勢力はスキップする。
+        /// </summary>
         public void Update(SimulationContext context)
         {
             foreach (var clan in context.World.Clans)

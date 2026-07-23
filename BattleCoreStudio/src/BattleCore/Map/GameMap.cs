@@ -66,5 +66,25 @@ namespace BattleCore.Map
 
             return GetHex(x, y);
         }
+
+        /// <summary>
+        /// from から to への方向を返す。隣接していない場合は null。
+        /// MovementSystem が Facing 更新に使用する。
+        /// </summary>
+        public HexDirection? GetDirection(Hex from, Hex to)
+        {
+            int dx = to.X - from.X;
+            int dy = to.Y - from.Y;
+            return (dx, dy) switch
+            {
+                ( 1,  0) => HexDirection.East,
+                (-1,  0) => HexDirection.West,
+                ( 1, -1) => HexDirection.NorthEast,
+                (-1, -1) => HexDirection.NorthWest,
+                ( 1,  1) => HexDirection.SouthEast,
+                (-1,  1) => HexDirection.SouthWest,
+                _        => null,
+            };
+        }
     }
 }

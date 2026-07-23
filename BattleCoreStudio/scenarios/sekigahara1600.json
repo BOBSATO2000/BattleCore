@@ -29,7 +29,7 @@
     { "id": 25, "q": 4, "r": 4, "terrain": "Forest"   }
   ],
   "clans": [
-    { "id": 1, "name": "東軍" },
+    { "id": 1, "name": "東軍", "isPlayerControlled": true },
     { "id": 2, "name": "西軍" }
   ],
   "officers": [

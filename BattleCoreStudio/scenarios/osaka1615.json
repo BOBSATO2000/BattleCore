@@ -29,7 +29,7 @@
     { "id": 25, "q": 4, "r": 4, "terrain": "Plain"    }
   ],
   "clans": [
-    { "id": 1, "name": "豊臣" },
+    { "id": 1, "name": "豊臣", "isPlayerControlled": true },
     { "id": 2, "name": "徳川" }
   ],
   "officers": [

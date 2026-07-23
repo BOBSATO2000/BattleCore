@@ -1,4 +1,5 @@
 using BattleCore.AI;
+using BattleCore.Player;
 using BattleCore.Scenario;
 using BattleCore.Simulation;
 using BattleCore.Systems;
@@ -194,7 +195,9 @@ namespace BattleCoreStudio
             rtbResult.Clear();
             btnRun.Enabled = false; btnStop.Enabled = true;
 
-            _runner = new SimulationRunner(_engine) { IntervalMs = intervalMs };
+            // メインのengineを汚染しないよう、毎回シナリオを再ロードした新しいengineを使う
+            var singleEngine = BuildBatchEngine(null);
+            _runner = new SimulationRunner(singleEngine) { IntervalMs = intervalMs };
             _runner.TurnCompleted += s => Invoke(() =>
             {
                 lblTurn.Text     = $"Turn: {s.TurnsExecuted} / {maxTurns}";
@@ -267,12 +270,17 @@ namespace BattleCoreStudio
         {
             var (world, _, triggers) = ScenarioLoader.Load(_scenarioPath);
             var aiParams = BattleCore.AI.AiParamsLoader.LoadFromBaseDir();
-            var ctx = new SimulationContext(world, new BattleCore.Simulation.GameTime(seed));
+            var ctx      = new SimulationContext(world, new BattleCore.Simulation.GameTime(seed));
+            var strategy = new AggressiveClanStrategy();
+
+            var commanderSystem = new CommanderSystem(new BattleCore.AI.OfficerDecision(aiParams));
+            foreach (var clan in world.Clans)
+                commanderSystem.Register(new AICommander(clan.Id, strategy));
+
             var eng = new SimulationEngine(ctx);
             eng.Register(new VisionSystem());
             eng.Register(new CastleSystem());
-            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy(),
-                new BattleCore.AI.OfficerDecision(aiParams)));
+            eng.Register(commanderSystem);
             eng.Register(new CommandExecutionSystem());
             eng.Register(new MovementSystem());
             eng.Register(new BattleSystem());

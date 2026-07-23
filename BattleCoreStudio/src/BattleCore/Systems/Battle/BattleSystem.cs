@@ -20,6 +20,10 @@ namespace BattleCore.Systems.Battle
         private readonly BattleFinder finder = new();
         private readonly BattleResolver resolver = new();
 
+        /// <summary>
+        /// BattleFinder で戦闘ペアを探し、BattleResolver で解決する。
+        /// 結果の BattleLogEvent を EventQueue に積む。
+        /// </summary>
         public void Update(SimulationContext context)
         {
             foreach (var battle in finder.Find(context.World))

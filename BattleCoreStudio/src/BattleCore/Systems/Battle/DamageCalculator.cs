@@ -1,60 +1,62 @@
 using BattleCore.Entities;
 using BattleCore.Map;
 using BattleCore.Simulation;
+using BattleCore.Systems;
 using System;
+using System.Collections.Generic;
 
 namespace BattleCore.Systems.Battle
 {
     /// <summary>
     /// 戦闘ダメージを計算するクラス。
-    /// Officer が配属されている場合、能力値による補正を適用する。
-    ///
-    /// 補正ルール：
-    ///   Leadership（統率）: 実効兵力に補正。100を基準に±50%まで変動。
-    ///   Strategy（戦術）  : 与ダメージに補正。100を基準に±30%まで変動。
-    ///   Courage（武勇）   : 接近戦追加ダメージ。Strategy補正に上乗せ。
-    ///
-    /// Officer未配属の場合は補正なし（従来と同じ計算）。
+    /// BattleContext を受け取り、登録された IBattleModifier を順番に適用する。
+    /// 各 Modifier は BattleBreakdown に補正内容を記録する。
     /// </summary>
     public sealed class DamageCalculator : IDamageCalculator
     {
-        /// <summary>Officer未配属時に使用するデフォルト能力値。</summary>
         private const int DefaultStat = 100;
 
-        public BattleResult Calculate(Army left, Army right)
-            => Calculate(left, right, null, null, TerrainType.Plain, Weather.Sunny);
-
-        public BattleResult Calculate(
-            Army left,
-            Army right,
-            Officer? leftOfficer,
-            Officer? rightOfficer)
-            => Calculate(left, right, leftOfficer, rightOfficer, TerrainType.Plain, Weather.Sunny);
-
-        public BattleResult Calculate(
-            Army left,
-            Army right,
-            Officer? leftOfficer,
-            Officer? rightOfficer,
-            TerrainType defenderTerrain)
-            => Calculate(left, right, leftOfficer, rightOfficer, defenderTerrain, Weather.Sunny);
-
-        /// <summary>
-        /// Officer能力値・地形・天気を考慮して戦闘結果を計算する。
-        /// Rain: 勝者損害・敗者損害ともに10%軽減。
-        /// </summary>
-        public BattleResult Calculate(
-            Army left,
-            Army right,
-            Officer? leftOfficer,
-            Officer? rightOfficer,
-            TerrainType defenderTerrain,
-            Weather weather,
-            bool hasCastle = false)
+        private readonly IReadOnlyList<IBattleModifier> modifiers = new List<IBattleModifier>
         {
-            // 実効兵力 = 兵力 × (Leadership / 100)
-            var leftPower  = ApplyLeadership(left.Soldiers,  leftOfficer);
-            var rightPower = ApplyLeadership(right.Soldiers, rightOfficer);
+            new ArquebusModifier(),
+            new MoraleModifier(),
+            new TerrainModifier(),
+            new WeatherModifier(),
+            new CastleModifier(),
+            new FacingModifier(),
+            new DefendModifier(),
+            new AmbushModifier(),
+            new InterceptModifier(),
+            new HeightModifier(),
+            new EntrenchModifier(),
+            new GarrisonModifier(),
+            new FatigueModifier(),
+            new FormationModifier(),
+        };
+
+        public BattleResult Calculate(Army left, Army right)
+            => Calculate(new BattleContext(left, right, null, null, TerrainType.Plain, Weather.Sunny, false));
+
+        public BattleResult Calculate(Army left, Army right, Officer? leftOfficer, Officer? rightOfficer)
+            => Calculate(new BattleContext(left, right, leftOfficer, rightOfficer, TerrainType.Plain, Weather.Sunny, false));
+
+        public BattleResult Calculate(Army left, Army right, Officer? leftOfficer, Officer? rightOfficer, TerrainType defenderTerrain)
+            => Calculate(new BattleContext(left, right, leftOfficer, rightOfficer, defenderTerrain, Weather.Sunny, false));
+
+        public BattleResult Calculate(Army left, Army right, Officer? leftOfficer, Officer? rightOfficer, TerrainType defenderTerrain, Weather weather, bool hasCastle = false)
+            => Calculate(new BattleContext(left, right, leftOfficer, rightOfficer, defenderTerrain, weather, hasCastle));
+
+        public BattleResult Calculate(BattleContext ctx)
+        {
+            var breakdown = new BattleBreakdown();
+
+            // 実効兵力 = 兵力 × Leadership補正 × Morale補正
+            var leftPower  = ApplyLeadership(ctx.Attacker.Soldiers, ctx.AttackerOfficer) * (ctx.Attacker.Morale / 100.0);
+            var rightPower = ApplyLeadership(ctx.Defender.Soldiers, ctx.DefenderOfficer) * (ctx.Defender.Morale / 100.0);
+
+            // 鉄砲先制：相手の実効兵力を削る
+            leftPower  *= UnitTypeData.PreemptiveFactor(ctx.Defender.UnitType);
+            rightPower *= UnitTypeData.PreemptiveFactor(ctx.Attacker.UnitType);
 
             Army winner, loser;
             Officer? winnerOfficer;
@@ -62,73 +64,36 @@ namespace BattleCore.Systems.Battle
 
             if (leftPower >= rightPower)
             {
-                winner = left;  winnerOfficer = leftOfficer;
-                loser  = right;
-                loserSoldiers = right.Soldiers;
+                winner = ctx.Attacker; winnerOfficer = ctx.AttackerOfficer;
+                loser  = ctx.Defender; loserSoldiers = ctx.Defender.Soldiers;
             }
             else
             {
-                winner = right; winnerOfficer = rightOfficer;
-                loser  = left;
-                loserSoldiers = left.Soldiers;
+                winner = ctx.Defender; winnerOfficer = ctx.DefenderOfficer;
+                loser  = ctx.Attacker; loserSoldiers = ctx.Attacker.Soldiers;
             }
 
-            // 勝者の損害 = 敗者兵力の1/3 × Strategy補正 × Courage補正
             var winnerLosses = (int)(loserSoldiers / 3.0
                 * GetStrategyFactor(winnerOfficer)
                 * GetCourageFactor(winnerOfficer));
-
             winnerLosses = Math.Max(0, winnerLosses);
 
-            // 地形ボーナス：防御側（loser）の損害を軽減
-            var terrainFactor = defenderTerrain switch
-            {
-                TerrainType.Forest   => 0.80,
-                TerrainType.Mountain => 0.70,
-                _                    => 1.00
-            };
-            loserSoldiers = (int)(loserSoldiers * terrainFactor);
+            foreach (var modifier in modifiers)
+                (winnerLosses, loserSoldiers) = modifier.Apply(ctx, winnerLosses, loserSoldiers, breakdown);
 
-            // 天気補正：Rain時は双方の損害10%軽減
-            if (weather == Weather.Rain)
-            {
-                winnerLosses  = (int)(winnerLosses  * 0.90);
-                loserSoldiers = (int)(loserSoldiers * 0.90);
-            }
-
-            // 城ボーナス：防御側に城がある場合、敗者損害20%軽減
-            if (hasCastle)
-                loserSoldiers = (int)(loserSoldiers * 0.80);
-
-            return new BattleResult(
-                winner:       winner,
-                loser:        loser,
-                winnerLosses: winnerLosses,
-                loserLosses:  loserSoldiers);
+            return new BattleResult(winner, loser, winnerLosses, loserSoldiers, breakdown);
         }
 
-        // Leadership が高いほど実効兵力が増える（50〜150%）
         private static double ApplyLeadership(int soldiers, Officer? officer)
         {
-            var leadership = officer?.Leadership ?? DefaultStat;
-            var factor = Math.Clamp(leadership / 100.0, 0.5, 1.5);
+            var factor = Math.Clamp((officer?.Leadership ?? DefaultStat) / 100.0, 0.5, 1.5);
             return soldiers * factor;
         }
 
-        // Strategy が高いほど与ダメージが減る（戦術が巧みなほど損害を抑える）
-        // 100基準：70〜130%
         private static double GetStrategyFactor(Officer? officer)
-        {
-            var strategy = officer?.Strategy ?? DefaultStat;
-            return Math.Clamp(strategy / 100.0, 0.7, 1.3);
-        }
+            => Math.Clamp((officer?.Strategy ?? DefaultStat) / 100.0, 0.7, 1.3);
 
-        // Courage が高いほど接近戦で追加ダメージを与える（損害が増える）
-        // 100基準：90〜110%
         private static double GetCourageFactor(Officer? officer)
-        {
-            var courage = officer?.Courage ?? DefaultStat;
-            return Math.Clamp(courage / 100.0, 0.9, 1.1);
-        }
+            => Math.Clamp((officer?.Courage ?? DefaultStat) / 100.0, 0.9, 1.1);
     }
 }

@@ -54,9 +54,18 @@ namespace BattleCore.Simulation
         /// </summary>
         public void Step()
         {
-            // ターン開始時に全軍のAPをリセット
+            // ターン開始時に全軍のAP・Stanceをリセット
             foreach (var army in Context.World.Armies)
+            {
                 army.ResetActionPoints();
+                army.Stance        = army.Stance == BattleCore.Entities.ArmyStance.Entrenched
+                    ? BattleCore.Entities.ArmyStance.Entrenched
+                    : BattleCore.Entities.ArmyStance.Normal;
+                army.ScoutingBonus    = false;
+                army.Marching         = false;
+                army.IsDecoy          = false;
+                army.PendingAttackHexId = null;
+            }
 
             foreach (var system in systems)
                 system.Update(Context);

@@ -38,7 +38,7 @@ namespace BattleCore.Scenario
                     "Forest"   => TerrainType.Forest,
                     _          => TerrainType.Plain,
                 };
-                world.Map.AddHex(new Hex(h.Id, h.Q, h.R, terrain));
+                world.Map.AddHex(new Hex(h.Id, h.Q, h.R, terrain, h.Height));
             }
 
             foreach (var c in data.Clans)
@@ -71,6 +71,8 @@ namespace BattleCore.Scenario
                 var army = new Army(a.Id, 0, a.ClanId, a.CurrentHexId);
                 army.SetInitialSoldiers(Math.Max(0, a.Soldiers));
                 if (a.OfficerId.HasValue) army.AssignOfficer(a.OfficerId.Value);
+                if (!string.IsNullOrEmpty(a.UnitType))
+                    army.UnitType = System.Enum.Parse<BattleCore.Entities.UnitType>(a.UnitType, ignoreCase: true);
                 world.Armies.Add(army);
             }
 

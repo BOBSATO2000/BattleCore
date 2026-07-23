@@ -7,7 +7,9 @@ namespace BattleCore.Entities
     /// </summary>
     public class Officer : Entity
     {
-        /// <summary>武将名。</summary>
+        /// <summary>
+		/// 武将名。
+		/// </summary>
         public string Name { get; }
 
         /// <summary>
@@ -47,12 +49,27 @@ namespace BattleCore.Entities
         public int BattleWins { get; set; }
 
         /// <summary>
+        /// 計略ポイント（SP）。計略Orderの発動コストに使用する。
+        /// 毎Tick+1回復。Intelligence が高いほど最大値が高い。
+        /// </summary>
+        public int StrategyPoint { get; set; } = 0;
+
+        /// <summary>計略ポイントの最大値。Intelligence/10（最低2、最大10）。</summary>
+        public int MaxStrategyPoint => System.Math.Clamp(Intelligence / 10, 2, 10);
+
+        /// <summary>
         /// 武将の性格。AI意思決定の基盤。
         /// 同じ命令でも性格によって従い方・変更の仕方が異なる。
         /// </summary>
         public OfficerPersonality Personality { get; set; } = OfficerPersonality.Loyal;
 
-        public Officer(int id, string name) : base(id)
+		/// <summary>
+		/// コンストラクタ。
+		/// <param name="id">エンティティを一意に識別するID。</param>
+		/// <param name="name">武将名。</param>
+		/// </summary>
+
+		public Officer(int id, string name) : base(id)
         {
             Name = name;
         }

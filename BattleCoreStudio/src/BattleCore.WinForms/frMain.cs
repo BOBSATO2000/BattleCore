@@ -1,6 +1,8 @@
 using BattleCore.AI;
+using BattleCore.Commands;
 using BattleCore.Events;
 using BattleCore.Map;
+using BattleCore.Player;
 using BattleCore.Save;
 using BattleCore.Scenario;
 using BattleCore.Simulation;
@@ -12,14 +14,16 @@ namespace BattleCoreStudio
 {
     public partial class frMain : Form
     {
-        private SimulationEngine engine = null!;
-        private WorldState       world  = null!;
+        private SimulationEngine engine          = null!;
+        private WorldState       world           = null!;
+        private PlayerCommander? playerCommander = null;   // null = 観戦モード
         private readonly System.Windows.Forms.Timer autoTimer = new();
 
         private string _scenarioId      = "";
         private string? _currentSavePath = null;
         private string  _scenarioPath    = "";
         private int?   _selectedArmyId  = null;
+        private int    _playerClanId    = 0;   // 0=観戦モード
         private readonly Dictionary<int, (string Summary, IReadOnlyList<string> Factors)> _lastDecisions = new();
         private readonly DebugOverlay _overlay = new();
 
@@ -36,6 +40,8 @@ namespace BattleCoreStudio
             autoTimer.Tick += (s, e) => { engine.Step(); UpdateUI(); };
             KeyPreview = true;
             KeyDown   += frMain_KeyDown;
+
+            pnlMap.MouseClick += PnlMap_MouseClick;
         }
 
         // -------------------------------------------------------
@@ -59,7 +65,13 @@ namespace BattleCoreStudio
             _scenarioId      = Path.GetFileNameWithoutExtension(dlg.SelectedPath);
             _scenarioPath    = dlg.SelectedPath;
             _currentSavePath = null;
+            _playerClanId    = dlg.PlayerClanId;
 
+            // プレイヤー勢力を IsPlayerControlled に設定
+            foreach (var clan in world.Clans)
+                clan.IsPlayerControlled = (_playerClanId != 0 && clan.Id == _playerClanId);
+
+            playerCommander = _playerClanId != 0 ? new PlayerCommander(_playerClanId) : null;
             engine = BuildEngine(new SimulationContext(world), triggers);
 
             UpdateUI();
@@ -67,16 +79,36 @@ namespace BattleCoreStudio
 
         /// <summary>
         /// SimulationEngine を構築する。InitSimulation / LoadFromFile の共通処理。
+        /// CommanderSystem が AICommander / PlayerCommander を統一管理する。
         /// </summary>
-        private static SimulationEngine BuildEngine(
+        private SimulationEngine BuildEngine(
             SimulationContext context,
             System.Collections.Generic.List<BattleCore.Scenario.EventTriggerData>? triggers = null)
         {
             var aiParams = BattleCore.AI.AiParamsLoader.LoadFromBaseDir();
+            var strategy = new AggressiveClanStrategy();
+            var officerDecision = new BattleCore.AI.OfficerDecision(aiParams);
+
+            // CommanderSystem に各勢力の Commander を登録
+            var commanderSystem = new CommanderSystem(officerDecision);
+            foreach (var clan in context.World.Clans)
+            {
+                if (playerCommander != null && clan.Id == playerCommander.ClanId)
+                    commanderSystem.Register(playerCommander);
+                else
+                    commanderSystem.Register(new AICommander(clan.Id, strategy));
+            }
+
             var eng = new SimulationEngine(context);
             eng.Register(new VisionSystem());
             eng.Register(new CastleSystem());
-            eng.Register(new ClanDecisionSystem(new AggressiveClanStrategy(), new BattleCore.AI.OfficerDecision(aiParams)));
+            eng.Register(new SupplyLineSystem());
+            eng.Register(new MoraleSystem());
+            eng.Register(new FoodSystem());
+            eng.Register(new FatigueSystem());
+            eng.Register(new SiegeSystem());
+            eng.Register(new IntelSystem());
+            eng.Register(commanderSystem);          // ClanDecisionSystem の代替
             eng.Register(new CommandExecutionSystem());
             eng.Register(new MovementSystem());
             eng.Register(new BattleSystem());
@@ -219,7 +251,10 @@ namespace BattleCoreStudio
                 _currentSavePath = path;
                 world            = context.World;
 
-                // SimulationEngineごと作り直す（安全）
+                foreach (var clan in world.Clans)
+                    clan.IsPlayerControlled = (_playerClanId != 0 && clan.Id == _playerClanId);
+
+                playerCommander = _playerClanId != 0 ? new PlayerCommander(_playerClanId) : null;
                 engine = BuildEngine(context);
 
                 var meta = SaveSystem.LoadMetadata(path);
@@ -239,13 +274,152 @@ namespace BattleCoreStudio
         }
 
         // -------------------------------------------------------
+        // Hexマップ クリック → 部隊選択 / 右クリックメニュー
+        // -------------------------------------------------------
+        private void PnlMap_MouseClick(object? sender, MouseEventArgs e)
+        {
+            // クリック座標からHexを特定
+            var clickedHex = HitTestHex(e.Location);
+            if (clickedHex == null) return;
+
+            // そのHexにいる部隊を取得（プレイヤー勢力優先）
+            var armiesOnHex = world.Armies
+                .Where(a => a.Soldiers > 0 && a.CurrentHexId == clickedHex.Id)
+                .OrderByDescending(a => a.ClanId == _playerClanId ? 1 : 0)
+                .ToList();
+
+            if (e.Button == MouseButtons.Left)
+            {
+                // 左クリック：部隊選択
+                if (armiesOnHex.Count > 0)
+                {
+                    _selectedArmyId = armiesOnHex[0].Id;
+                    // lstArmiesの選択も同期
+                    var armies = world.Armies.OrderBy(a => a.ClanId).ToList();
+                    var idx = armies.FindIndex(a => a.Id == _selectedArmyId);
+                    if (idx >= 0) lstArmies.SelectedIndex = idx;
+                    pnlMap.Invalidate();
+                    UpdateDebugPanel();
+                }
+                else
+                {
+                    // 空Hexクリック：選択中プレイヤー部隊があれば移動命令
+                    if (_selectedArmyId.HasValue && _playerClanId != 0)
+                    {
+                        var selArmy = world.GetArmyById(_selectedArmyId.Value);
+                        if (selArmy != null && selArmy.ClanId == _playerClanId && selArmy.Soldiers > 0
+                            && playerCommander != null)
+                        {
+                            playerCommander.EnqueueOrder(new CommanderOrder(
+                                new MoveArmyCommand(selArmy.Id, clickedHex.Id, BattleCore.Commands.DecisionReason.Advance),
+                                priority: 10, OrderLifetime.Persistent));
+                            lstEvents.Items.Insert(0,
+                                $"[命令] {GetOfficerName(selArmy)} → Hex{clickedHex.Id} へ移動");
+                        }
+                    }
+                }
+            }
+            else if (e.Button == MouseButtons.Right)
+            {
+                // 右クリック：プレイヤー部隊への命令メニュー
+                var playerArmy = armiesOnHex.FirstOrDefault(a => a.ClanId == _playerClanId);
+                if (playerArmy == null && _selectedArmyId.HasValue)
+                {
+                    var sel = world.GetArmyById(_selectedArmyId.Value);
+                    if (sel?.ClanId == _playerClanId) playerArmy = sel;
+                }
+                if (playerArmy == null || _playerClanId == 0 || playerCommander == null) return;
+
+                ShowOrderMenu(playerArmy, clickedHex.Id, e.Location);
+            }
+        }
+
+        private void ShowOrderMenu(BattleCore.Entities.Army army, int targetHexId, Point screenPos)
+        {
+            if (playerCommander == null) return;
+            var menu = new ContextMenuStrip();
+            var officerName = GetOfficerName(army);
+
+            menu.Items.Add($"【{officerName}】への命令").Enabled = false;
+            menu.Items.Add(new ToolStripSeparator());
+
+            void Enqueue(string label, ICommand cmd,
+                int priority = 10, OrderLifetime lifetime = OrderLifetime.OneShot)
+            {
+                var item = menu.Items.Add(label);
+                item.Click += (_, _) =>
+                {
+                    playerCommander.EnqueueOrder(new CommanderOrder(cmd, priority, lifetime));
+                    lstEvents.Items.Insert(0, $"[命令] {officerName}：{label}");
+                };
+            }
+
+            // 直接命令
+            if (targetHexId != army.CurrentHexId)
+                Enqueue($"Hex{targetHexId} へ移動",
+                    new MoveArmyCommand(army.Id, targetHexId, BattleCore.Commands.DecisionReason.Advance),
+                    priority: 10, lifetime: OrderLifetime.Persistent);
+            Enqueue("待機", new WaitOrder(army.Id));
+
+            menu.Items.Add(new ToolStripSeparator());
+
+            // 方針命令（AIが具体行動を決定）
+            Enqueue("⚔ 攻撃（最寄り敵城へ）",  new BattleCore.Commands.DefendOrder(army.Id));  // Attack は AICommander に委ねる
+            Enqueue("🛡 防御態勢",              new DefendOrder(army.Id));
+            Enqueue("🏃 撤退（最寄り自城へ）",  new RetreatOrder(army.Id));
+            Enqueue("🔭 偵察",                  new ScoutOrder(army.Id));
+            Enqueue("🌾 補給優先",              new SupplyOrder(army.Id));
+            Enqueue("🏗 築城",                  new FortifyOrder(army.Id));
+
+            var nearbyCastle = world.Castles
+                .Where(c => c.OwnerClanId != army.ClanId)
+                .OrderBy(c =>
+                {
+                    var h  = world.Map.GetHexById(army.CurrentHexId);
+                    var ch = world.Map.GetHexById(c.HexId);
+                    return (h == null || ch == null) ? int.MaxValue : HexDistance.Calculate(h, ch);
+                })
+                .FirstOrDefault();
+            if (nearbyCastle != null)
+                Enqueue($"🏯 「{nearbyCastle.Name}」を包囲", new SiegeOrder(army.Id, nearbyCastle.Id));
+
+            menu.Show(pnlMap, screenPos);
+        }
+
+        private string GetOfficerName(BattleCore.Entities.Army army)
+        {
+            if (!army.OfficerId.HasValue) return $"軍{army.Id}";
+            return world.Officers.FirstOrDefault(o => o.Id == army.OfficerId.Value)?.Name ?? $"軍{army.Id}";
+        }
+
+        /// <summary>ピクセル座標からHexを逆引きする。</summary>
+        private BattleCore.Map.Hex? HitTestHex(Point pt)
+        {
+            BattleCore.Map.Hex? best = null;
+            float bestDist = float.MaxValue;
+            foreach (var hex in world.Map.Hexes)
+            {
+                var center = HexToPixel(hex.X, hex.Y);
+                float dx = pt.X - center.X;
+                float dy = pt.Y - center.Y;
+                float dist = MathF.Sqrt(dx * dx + dy * dy);
+                if (dist < HexSize && dist < bestDist)
+                {
+                    bestDist = dist;
+                    best = hex;
+                }
+            }
+            return best;
+        }
+
+        // -------------------------------------------------------
         // F1-F5 オーバーレイ切替
         // -------------------------------------------------------
         private void frMain_KeyDown(object? sender, KeyEventArgs e)
         {
             if (!_overlay.HandleKey(e.KeyCode)) return;
             rtbDebug.Visible  = _overlay.DebugConsole;
-            lblDebug.Visible  = _overlay.DebugConsole;
+            //lblDebug.Visible  = _overlay.DebugConsole;
             lblStatus.Text    = _overlay.StatusText;
             pnlMap.Invalidate();
             e.Handled = true;
@@ -343,7 +517,10 @@ namespace BattleCoreStudio
                 TurnPhase.Victory     => "[勝利判定]",
                 _                     => "",
             };
-            lblStatus.Text = $"Tick:{t.Tick}  {t.Year}年 {SeasonName(t.Season)}{weatherText}  {phaseText}";
+            var playerText = _playerClanId != 0
+                ? $"  ★{world.Clans.FirstOrDefault(c => c.Id == _playerClanId)?.Name ?? "?"}"
+                : "  [観戦]";
+            lblStatus.Text = $"Tick:{t.Tick}  {t.Year}年 {SeasonName(t.Season)}{weatherText}  {phaseText}{playerText}";
 
             // 勢力概要パネル
             pnlClans.Controls.Clear();
@@ -403,14 +580,7 @@ namespace BattleCoreStudio
                 var ev = engine.Context.EventQueue.Dequeue();
                 if (ev is BattleLogEvent bl)
                 {
-                    var terrainTag = bl.TerrainBonus
-                        ? bl.Terrain == TerrainType.Forest ? "[森-20%]" : "[山-30%]"
-                        : "";
-                    var weatherTag = bl.RainPenalty  ? "[雨-10%]" : "";
-                    var castleTag  = bl.CastleBonus  ? "[城-20%]"  : "";
-                    var growthTag  = bl.GrowthDetail != null ? $" ★{bl.GrowthDetail}" : "";
-                    lstEvents.Items.Insert(0,
-                        $"[Tick{t.Tick}] {bl.WinnerName}勝 損:{bl.WinnerLosses} / {bl.LoserName}敗 損:{bl.LoserLosses}{terrainTag}{weatherTag}{castleTag}{growthTag}");
+                    lstEvents.Items.Insert(0, $"[Tick{t.Tick}] {bl.ToLogLine()}");
                 }
                 else if (ev is CastleCapturedEvent cc)
                 {
@@ -464,10 +634,46 @@ namespace BattleCoreStudio
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] 🧠 {de.OfficerName}「{de.Summary}」 {factors}");
                 }
+                else if (ev is DiplomacyEvent dip)
+                {
+                    var icon = dip.Type switch
+                    {
+                        BattleCore.Events.DiplomacyEventType.CeasefireAccepted  => "⚔️停戦",
+                        BattleCore.Events.DiplomacyEventType.CeasefireExpired   => "⚠️停戦終了",
+                        BattleCore.Events.DiplomacyEventType.ReinforcementSent  => "🚩援軍",
+                        BattleCore.Events.DiplomacyEventType.AllianceBetrayed   => "🗡️裏切り",
+                        _                                                        => "📜外交",
+                    };
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] {icon} {dip.ClanName}→{dip.TargetName} {dip.Detail}");
+                }
                 else if (ev is ScenarioEvent se)
                 {
                     lstEvents.Items.Insert(0,
                         $"[Tick{t.Tick}] {se.Message}");
+                }
+                else if (ev is MoraleEvent me)
+                {
+                    var sign = me.Delta >= 0 ? "+" : "";
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] 💢 {me.OfficerName} 士気{sign}{me.Delta}→{me.NewMorale}（{me.Reason}）");
+                }
+                else if (ev is SiegeEvent sge)
+                {
+                    var typeText = sge.Type switch
+                    {
+                        BattleCore.Events.SiegeEventType.SiegeStarted => "包囲開始",
+                        BattleCore.Events.SiegeEventType.SiegeLifted  => "包囲解除",
+                        _                                              => "降伏",
+                    };
+                    var clan = world.Clans.FirstOrDefault(c => c.Id == sge.OwnerClanId);
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] 🏯 「{sge.CastleName}」{typeText}（{clan?.Name ?? "?"}）");
+                }
+                else if (ev is IntelEvent ie)
+                {
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{t.Tick}] 🕵 {ie.SpyClanName}が{ie.TargetClanName}の情報入手: {ie.Info}");
                 }
                 else if (ev is GameOverEvent go)
                 {
@@ -633,11 +839,18 @@ namespace BattleCoreStudio
                         _ => Color.Gray,
                     };
 
-                    // 駒の円
+                    // 駒の円（プレイヤー勢力は太枠でハイライト）
                     g.FillEllipse(new SolidBrush(color),
                         center.X - 14, center.Y - 14, 28, 28);
-                    g.DrawEllipse(new Pen(Color.White, 1f),
-                        center.X - 14, center.Y - 14, 28, 28);
+                    bool isPlayer   = army.ClanId == _playerClanId && _playerClanId != 0;
+                    bool isSelected = army.Id == _selectedArmyId;
+                    var  rimPen     = isSelected ? new Pen(Color.Yellow, 3f)
+                                    : isPlayer   ? new Pen(Color.White,  2f)
+                                    :              new Pen(Color.FromArgb(160, 160, 160), 1f);
+                    g.DrawEllipse(rimPen, center.X - 14, center.Y - 14, 28, 28);
+                    // 選択中は外側にリング
+                    if (isSelected)
+                        g.DrawEllipse(new Pen(Color.Yellow, 1.5f), center.X - 18, center.Y - 18, 36, 36);
 
                     // 武将名
                     var officerName = officer?.Name ?? "?";
@@ -828,6 +1041,9 @@ namespace BattleCoreStudio
 
             var fg = text switch
             {
+                var s when s.Contains("包囲") || s.Contains("降伏")        => Color.FromArgb(255, 140,  40), // 包囲=橙
+                var s when s.Contains("🕵")                        => Color.FromArgb(160, 255, 220), // 謀報=水緑
+                var s when s.Contains("💢")                        => Color.FromArgb(255, 255, 120), // 士気=黄
                 var s when s.Contains("勝") || s.Contains("敗")   => Color.FromArgb(255, 120, 120), // 戦闘=赤
                 var s when s.Contains("占領")                    => Color.FromArgb(255, 200,  80), // 城占領=黄
                 var s when s.Contains("拒否") || s.Contains("進言") => Color.FromArgb(255, 220,  60), // 武将=黄

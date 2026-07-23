@@ -7,9 +7,13 @@ namespace BattleCore.Simulation
     {
         private readonly List<BattleRunRecord> _records = [];
 
+        /// <summary>全実行レコードの読み取り専用リスト。</summary>
         public IReadOnlyList<BattleRunRecord> Records => _records;
+
+        /// <summary>実行回数。</summary>
         public int TotalRuns => _records.Count;
 
+        /// <summary>実行レコードを追加する。</summary>
         public void Add(BattleRunRecord record) => _records.Add(record);
 
         /// <summary>勢力別勝利数。Key = ClanId。</summary>
@@ -93,18 +97,34 @@ namespace BattleCore.Simulation
 
     public sealed class PersonalityStats
     {
+        /// <summary>性格名。</summary>
         public string Personality    { get; init; } = "";
+
+        /// <summary>対象武将の総数。</summary>
         public int    TotalOfficers  { get; set; }
+
+        /// <summary>命令拒否の総数。</summary>
         public int    RefusalCount   { get; set; }
+
+        /// <summary>独断行動の総数。</summary>
         public int    IndependentCount { get; set; }
+
+        /// <summary>戦死数。</summary>
         public int    DeathCount     { get; set; }
     }
 
     public sealed class FieldStats
     {
+        /// <summary>平均値。</summary>
         public double Avg    { get; init; }
+
+        /// <summary>最小値。</summary>
         public int    Min    { get; init; }
+
+        /// <summary>最大値。</summary>
         public int    Max    { get; init; }
+
+        /// <summary>標準偏差。</summary>
         public double StdDev { get; init; }
         public override string ToString() => $"{Avg:F1} (min:{Min} max:{Max} σ:{StdDev:F1})";
     }

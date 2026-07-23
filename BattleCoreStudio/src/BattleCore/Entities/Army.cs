@@ -2,123 +2,81 @@ using System;
 
 namespace BattleCore.Entities
 {
-    /// <summary>
-    /// 軍隊エンティティ。
-    /// 勢力（Clan）に属し、Hexマップ上を移動して戦闘を行う。
-    /// </summary>
     public class Army : Entity
     {
-        /// <summary>指揮官（Officer）のID。未配属の場合は null。</summary>
         public int? OfficerId { get; private set; }
-
-        /// <summary>
-        /// この軍が所属する勢力のID。
-        /// BattleSystem はこの値で味方・敵を判定する。
-        /// </summary>
         public int ClanId { get; set; }
-
-        /// <summary>現在いるHexのID。</summary>
         public int CurrentHexId { get; private set; }
-
-        /// <summary>兵力。0になると全滅。</summary>
         public int Soldiers { get; private set; } = 1000;
-
-        /// <summary>
-        /// 移動目標HexのID。
-        /// null の場合は待機中。MovementSystem はこの値を参照して移動する。
-        /// </summary>
         public int? DestinationHexId { get; private set; }
 
-        /// <summary>オブジェクト初期化子用コンストラクタ。</summary>
         public Army() : base() { }
-
-        /// <summary>IDのみ指定するコンストラクタ（テスト用途）。</summary>
         public Army(int id) : base(id) { }
-
-        /// <summary>フル指定コンストラクタ。</summary>
-        public Army(int id, int commanderId, int clanId, int currentHexId)
-            : base(id)
+        public Army(int id, int commanderId, int clanId, int currentHexId) : base(id)
         {
             ClanId = clanId;
             CurrentHexId = currentHexId;
             Soldiers = 1000;
         }
 
-        /// <summary>指定HexへArmyを瞬間移動させる（MovementSystem から呼ぶ）。</summary>
         public void MoveTo(int hexId) => CurrentHexId = hexId;
-
-        /// <summary>目的地に到着した際に DestinationHexId をクリアする。</summary>
         public void Arrive() => DestinationHexId = null;
-
-        /// <summary>
-        /// 移動命令を設定する。
-        /// DecisionSystem / CommandExecutionSystem から呼ばれ、
-        /// MovementSystem が次のStep で1Hexずつ進める。
-        /// </summary>
         public void OrderMove(int destinationHexId) => DestinationHexId = destinationHexId;
 
-        /// <summary>
-        /// 兵力を減らす。0未満にはならない。
-        /// BattleSystem から呼ばれる。
-        /// </summary>
         public void LoseSoldiers(int count)
         {
-            if (count < 0)
-                throw new ArgumentOutOfRangeException(nameof(count));
-
+            if (count < 0) throw new ArgumentOutOfRangeException(nameof(count));
             Soldiers = Math.Max(0, Soldiers - count);
         }
 
-        /// <summary>移動目標をクリアして待機状態にする。</summary>
         public void ClearDestination() => DestinationHexId = null;
 
-        /// <summary>
-        /// 移動クールダウン。Forest進入時に1がセットされ、次Tickは移動スキップ。
-        /// MovementSystem が毎Tick1ずつ減らす。
-        /// </summary>
         public int MoveCooldown { get; set; } = 0;
-
-        /// <summary>
-        /// 行動力（AP）。毎ターン MaxActionPoints にリセットされる。
-        /// 移動1Hex = 1AP消費。Forest進入 = 追加1AP消費。
-        /// 0になると移動不可。
-        /// </summary>
         public int ActionPoints { get; set; } = MaxActionPoints;
-
-        /// <summary>1ターンあたりの最大行動力。</summary>
         public const int MaxActionPoints = 2;
-
-        /// <summary>APを最大値にリセットする。ターン開始時に呼ぶ。</summary>
         public void ResetActionPoints() => ActionPoints = MaxActionPoints;
-
-        /// <summary>指揮官（Officer）を配属する。</summary>
         public void AssignOfficer(int officerId) => OfficerId = officerId;
-
-        /// <summary>兵力の上限。初期兵力を記録する。</summary>
         public int MaxSoldiers { get; private set; } = 1000;
 
-        /// <summary>
-        /// 兵力を補充する。MaxSoldiersを超えない範囲で増加する。
-        /// SupplySystem / CastleSystem から呼ばれる。
-        /// </summary>
         public void Reinforce(int amount)
         {
-            if (amount < 0)
-                throw new ArgumentOutOfRangeException(nameof(amount));
+            if (amount < 0) throw new ArgumentOutOfRangeException(nameof(amount));
             Soldiers = Math.Min(MaxSoldiers, Soldiers + amount);
         }
 
-        /// <summary>初期兵力を設定する。ScenarioLoader から呼ばれる。</summary>
         public void SetInitialSoldiers(int soldiers)
         {
             Soldiers    = soldiers;
             MaxSoldiers = soldiers;
         }
 
-        /// <summary>
-        /// 軍が離反し、新しい勢力へ移る。
-        /// LoyaltySystem が武将の離反処理の一環として呼び出す。
-        /// </summary>
+        public void SetSoldiers(int soldiers) => Soldiers = Math.Clamp(soldiers, 0, MaxSoldiers);
         public void Defect(int newClanId) => ClanId = newClanId;
+
+        public int Morale { get; set; } = 100;
+        public int Food { get; set; } = 100;
+        public const int MaxFood = 100;
+        public const int FoodConsumptionPerTick = 10;
+        public bool IsSupplied { get; set; } = true;
+        public int Fatigue { get; set; } = 0;
+        public bool MovedThisTick { get; set; } = false;
+        public UnitType UnitType { get; set; } = UnitType.Ashigaru;
+        public FacingDirection Facing { get; set; } = FacingDirection.East;
+        public ArmyStance Stance { get; set; } = ArmyStance.Normal;
+        public double TurnCostAccumulator { get; set; } = 0.0;
+        public bool ScoutingBonus { get; set; } = false;
+        public bool Marching { get; set; } = false;
+        public int EntrenchTick { get; set; } = 0;
+        public bool IsDecoy { get; set; } = false;
+        public ArmyFormation Formation { get; set; } = ArmyFormation.Normal;
+        public bool InZoc { get; set; } = false;
+
+        /// <summary>
+        /// 戦闘トリガー待機HexId。
+        /// MovementSystem が敵Hexへの侵入時に設定する。
+        /// BattleFinder がこの値を参照して隣接戦闘を解決する。
+        /// 毎Tick開始時に SimulationEngine がリセットする。
+        /// </summary>
+        public int? PendingAttackHexId { get; set; } = null;
     }
 }

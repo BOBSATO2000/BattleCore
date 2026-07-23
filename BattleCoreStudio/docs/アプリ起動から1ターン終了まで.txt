@@ -1,0 +1,136 @@
+アプリ起動 → 1ターン終了までのフロー
+1. アプリ起動
+Program.Main()
+  └─ Application.Run(new frMain())
+       └─ frMain コンストラクタ
+            ├─ InitializeComponent()        ← WinForms UI初期化
+            ├─ InitSimulation()             ← シミュレーション初期化
+            └─ autoTimer.Tick += engine.Step() + UpdateUI()
+
+
+2. InitSimulation() — エンジン構築
+InitSimulation()
+  ├─ frScenarioSelect.ShowDialog()          ← シナリオ選択ダイアログ
+  ├─ ScenarioLoader.Load(path)              ← JSONからWorldState・triggers生成
+  └─ BuildEngine(new SimulationContext(world), triggers)
+       ├─ AiParamsLoader.LoadFromBaseDir()  ← ai_params.json 読み込み
+       ├─ new SimulationEngine(context)
+       └─ eng.Register() × 13本
+            1.  VisionSystem
+            2.  CastleSystem
+            3.  ClanDecisionSystem(AggressiveClanStrategy, OfficerDecision(aiParams))
+            4.  CommandExecutionSystem
+            5.  MovementSystem
+            6.  BattleSystem
+            7.  LoyaltySystem
+            8.  RecruitmentSystem
+            9.  SupplySystem
+            10. RelationshipSystem
+            11. DiplomacySystem
+            12. EventTriggerSystem
+            13. VictorySystem
+
+
+3. 1ターン進める — トリガー
+手動（ボタン）と自動（タイマー）の2経路がある。
+
+【手動】btnStep_Click()
+  └─ engine.Step()
+
+【自動】autoTimer.Tick（btnAuto_Click で開始）
+  └─ engine.Step()
+
+
+4. SimulationEngine.Step() — 1ターンの本体
+SimulationEngine.Step()
+  │
+  ├─ [前処理] 全Army.ResetActionPoints()    ← AP を MaxActionPoints(=2) にリセット
+  │
+  ├─ systems をループ（登録順に Update(context) を呼ぶ）
+  │
+  │   1. VisionSystem.Update()
+  │        └─ 全ArmyのVisionRange(=2)内HexをBFSで探索
+  │             → WorldState.Visions[armyId] に格納
+  │
+  │   2. CastleSystem.Update()
+  │        └─ 全城をループ
+  │             ├─ 1勢力のみ占拠 → 占領 + CastleCapturedEvent
+  │             └─ 占領勢力のArmyに ReinforcementPerTick 補充
+  │
+  │   3. ClanDecisionSystem.Update()
+  │        └─ 全Clan（IsPlayerControlled=falseのみ）をループ
+  │             ├─ Layer1: AggressiveClanStrategy.Decide()
+  │             │    └─ 視界内の敵・城を見て MoveArmyCommand を生成
+  │             └─ Layer2: OfficerDecision.Evaluate()
+  │                  ├─ ① loyalty <= RefusalLoyaltyThreshold.Roll()  → 拒否
+  │                  ├─ ② Cautious + soldiers <= CautiousRetreatSoldiers.Roll() → 撤退進言
+  │                  ├─ ③ Ambitious + loyalty <= IndependentActionLoyalty.Roll() → 独断
+  │                  ├─ ④ Dislike >= DissatisfiedDislikeThreshold.Roll() → 不満撤退
+  │                  ├─ ⑤ 通常 → 元の命令をそのまま通す
+  │                  └─ ⑥ SpontaneousEventTable.Evaluate() → 突発イベント
+  │                       → Accepted → CommandQueue.Enqueue()
+  │                       → Event    → EventQueue.Enqueue()
+  │
+  │   4. CommandExecutionSystem.Update()
+  │        └─ CommandQueue が空になるまで Dequeue → command.Execute(context)
+  │             └─ MoveArmyCommand.Execute() → Army.OrderMove(destinationHexId)
+  │
+  │   5. MovementSystem.Update()
+  │        └─ 全Armyをループ
+  │             └─ AP/Cooldown/DestinationHexId チェック → GetNextStep() → Army.MoveTo()
+  │                  ├─ Forest進入 → MoveCooldown = 1（雨天時=2）
+  │                  └─ 到着 → MovementEvent
+  │
+  │   6. BattleSystem.Update()
+  │        ├─ BattleFinder.Find() → 同Hex異勢力ペアを列挙
+  │        └─ BattleResolver.Resolve() × 戦闘数
+  │             ├─ DamageCalculator.Calculate() → 兵力・地形・天気・城・Trust補正
+  │             ├─ Army.LoseSoldiers() × 2
+  │             ├─ 勝者Officer.BattleWins++ → Leadership or Strategy +1
+  │             └─ BattleLogEvent
+  │
+  │   7. LoyaltySystem.Update()
+  │        ├─ ① 全Membership → Loyalty 変動（勝敗・春ボーナス）
+  │        └─ ② 裏切りスコア判定 → BetrayalEvent + 連鎖離反
+  │
+  │   8. RecruitmentSystem.Update()
+  │        └─ 無所属Army(ClanId=0)の Officer → 最寄り勢力へ仕官 + RecruitEvent
+  │
+  │   9. SupplySystem.Update()
+  │        └─ 全Army（無所属・全滅除く）→ Reinforce() + SupplyEvent
+  │
+  │   10. RelationshipSystem.Update()
+  │        ├─ ① 同Hex共闘 → Trust/Respect 変動
+  │        ├─ ② 同Hex敵対 → Dislike 変動
+  │        ├─ ③ 放置（距離>=4）→ Respect 低下
+  │        ├─ ④ BattleLogEvent 参照 → 勝者/敗者の Dislike 変動
+  │        └─ ⑤ RelationTrigger 評価 → 条件+確率で突発イベント
+  │
+  │   11. DiplomacySystem.Update()
+  │        ├─ 同盟 RemainingTicks-- → 期限切れ解消
+  │        └─ AutoAllianceInterval ごとに AI自動同盟評価
+  │
+  │   12. EventTriggerSystem.Update()
+  │        └─ 全トリガー条件評価（AND条件）→ 未発火のみ ScenarioEvent
+  │
+  │   13. VictorySystem.Update()
+  │        └─ 生存勢力数チェック → 1勢力 → GameOverEvent
+  │
+  └─ [後処理]
+       ├─ Context.Time.Advance()   ← Tick++ / 季節進行 / 天気更新
+       └─ Context.World.Weather 同期
+
+
+
+5. UpdateUI() — 画面反映
+engine.Step() 完了後
+  └─ UpdateUI()
+       ├─ lblStatus 更新（Tick・年・季節・天気）
+       ├─ pnlClans 更新（勢力別兵力）
+       ├─ lstArmies 更新（軍隊リスト）
+       ├─ EventQueue を全 Dequeue → lstEvents にログ追加
+       │    BattleLogEvent / CastleCapturedEvent / MovementEvent /
+       │    SupplyEvent / BetrayalEvent / GameOverEvent ... など
+       ├─ pnlMap.Invalidate() → pnlMap_Paint() でHexマップ再描画
+       └─ UpdateDebugPanel() → 選択部隊のデバッグ情報更新
+

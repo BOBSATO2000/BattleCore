@@ -9,10 +9,16 @@ namespace BattleCore.Map
         /// <summary>平地。移動コスト1。補正なし。</summary>
         Plain,
 
-        /// <summary>森。移動コスト2（将来実装）。防御補正あり。</summary>
+        /// <summary>森。移動コスト2。防御補正あり。</summary>
         Forest,
 
-        /// <summary>山岳。移動不可。防御補正大（将来実装）。</summary>
-        Mountain
+        /// <summary>山岳。移動不可。防御補正大。</summary>
+        Mountain,
+
+        /// <summary>
+        /// 河川。移動コスト+2（渡河）。
+        /// 同Hexに Bridge がある場合は通常コストで通過可能。
+        /// </summary>
+        River,
     }
 }

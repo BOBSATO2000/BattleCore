@@ -9,18 +9,29 @@ namespace BattleCore.Entities
     /// </summary>
     public class Clan : Entity
     {
-        private static int _nextId = 1;
+		/// <summary>
+		/// 次に生成される Clan の ID。自動採番用。(インクリメント用)
+		/// </summary>
+		private static int _nextId = 1;
 
-        /// <summary>勢力名。</summary>
+        /// <summary>
+		/// 勢力名。
+		/// </summary>
         public string Name { get; set; } = "";
 
-        /// <summary>資金。内政・雇用・外交に使用する（将来実装）。</summary>
+        /// <summary>
+		/// 資金。内政・雇用・外交に使用する（将来実装）。
+		/// </summary>
         public int Gold { get; set; }
 
-        /// <summary>所属武将IDリスト。</summary>
+        /// <summary>
+		/// 所属武将IDリスト。
+		/// </summary>
         public List<int> OfficerIds { get; } = new();
 
-        /// <summary>所属軍IDリスト。</summary>
+        /// <summary>
+		/// 所属軍IDリスト。
+		/// </summary>
         public List<int> ArmyIds { get; } = new();
 
         /// <summary>
@@ -37,10 +48,14 @@ namespace BattleCore.Entities
         /// </summary>
         public bool IsPlayerControlled { get; set; } = false;
 
-        /// <summary>IDを直接指定するコンストラクタ。</summary>
+        /// <summary>
+		/// IDを直接指定するコンストラクタ。
+		/// </summary>
         public Clan(int id) : base(id) { }
 
-        /// <summary>名前を指定するコンストラクタ。IDは自動採番。</summary>
+        /// <summary>
+		/// 名前を指定するコンストラクタ。IDは自動採番。
+		/// </summary>
         public Clan(string name) : base(_nextId++)
         {
             Name = name;

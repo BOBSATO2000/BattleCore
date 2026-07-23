@@ -25,16 +25,19 @@ namespace BattleCore.Systems
 
         private static int _nextMembershipId = 100;
 
+        /// <summary>RecruitAmbitionThreshold を指定するコンストラクタ。</summary>
         public RecruitmentSystem(int recruitAmbitionThreshold = 30)
         {
             RecruitAmbitionThreshold = recruitAmbitionThreshold;
         }
 
+        /// <summary>
+        /// 無所属武将を探し、最寄りの勢力へ仕官処理を実行する。
+        /// Ambition が低い武将は仕官を急がないためスキップする。
+        /// </summary>
         public void Update(SimulationContext context)
         {
             var world = context.World;
-
-            // 無所属Armyを指揮するOfficerを取得
             var ronins = world.Armies
                 .Where(a => a.ClanId == 0 && a.Soldiers > 0 && a.OfficerId.HasValue)
                 .Select(a => new

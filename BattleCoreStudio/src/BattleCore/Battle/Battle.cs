@@ -4,17 +4,19 @@ namespace BattleCore.Battle
 {
     /// <summary>
     /// 1件の戦闘情報を表すクラス。
-    /// 将来的には地形・天候・時刻・城・防御補正などの情報もここに追加できる。
     /// </summary>
     public class Battle
     {
-        /// <summary>攻撃側の軍。</summary>
         public Army Attacker { get; }
-
-        /// <summary>防御側の軍。</summary>
         public Army Defender { get; }
 
-        /// <summary>攻撃側と防御側を指定するコンストラクタ。</summary>
+        /// <summary>
+        /// 隣接戦闘フラグ。
+        /// true の場合、攻撃側が敵Hexへ侵入を試みた戦闘。
+        /// 勝者が敵Hexを占領し、敗者は元のHexへ押し返される。
+        /// </summary>
+        public bool IsAdjacentBattle { get; set; } = false;
+
         public Battle(Army attacker, Army defender)
         {
             Attacker = attacker;

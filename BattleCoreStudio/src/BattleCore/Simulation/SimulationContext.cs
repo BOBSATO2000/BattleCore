@@ -10,13 +10,19 @@ namespace BattleCore.Simulation
     /// </summary>
     public class SimulationContext
     {
-        /// <summary>ゲーム内時間。Step ごとに Advance() される。</summary>
+        /// <summary>
+		/// ゲーム内時間。Step ごとに Advance() される。
+		/// </summary>
         public GameTime Time { get; }
 
-        /// <summary>ゲーム世界の全状態。</summary>
+        /// <summary>
+		/// ゲーム世界の全状態。
+		/// </summary>
         public WorldState World { get; }
 
-        /// <summary>現在のターンフェーズ。StepPhase() で進む。</summary>
+        /// <summary>
+		/// 現在のターンフェーズ。StepPhase() で進む。
+		/// </summary>
         public TurnPhase CurrentPhase { get; set; } = TurnPhase.PlayerPhase;
 
         /// <summary>
@@ -33,13 +39,20 @@ namespace BattleCore.Simulation
         /// </summary>
         public Queue<IGameEvent> EventQueue { get; } = new();
 
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		/// <param name="world"></param>
         public SimulationContext(WorldState world)
         {
             Time = new GameTime();
             World = world;
         }
 
-        /// <summary>SaveSystem からの復元用。外部で構築した GameTime を渡す。</summary>
+        /// <summary>
+		/// コンストラクタ
+		/// SaveSystem からの復元用。外部で構築した GameTime を渡す。
+		/// </summary>
         public SimulationContext(WorldState world, GameTime time)
         {
             Time = time;

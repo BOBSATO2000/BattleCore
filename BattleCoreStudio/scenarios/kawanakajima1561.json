@@ -29,7 +29,7 @@
     { "id": 25, "q": 4, "r": 4, "terrain": "Mountain" }
   ],
   "clans": [
-    { "id": 1, "name": "上杉" },
+    { "id": 1, "name": "上杉", "isPlayerControlled": true },
     { "id": 2, "name": "武田" }
   ],
   "officers": [

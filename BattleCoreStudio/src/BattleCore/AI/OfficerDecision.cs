@@ -22,29 +22,56 @@ namespace BattleCore.AI
     /// </summary>
     public class OfficerDecision
     {
-        private readonly IPathFinder pathFinder = new HexPathFinder();
+        private readonly IPathFinder _pathFinder = new HexPathFinder();
+        private readonly Random _rng;
+        private readonly SpontaneousEventTable? _spontaneous;
 
-        public int RefusalLoyaltyThreshold      { get; }
-        public int CautiousRetreatSoldiers      { get; }
-        public int IndependentActionLoyalty     { get; }
-        public int DissatisfiedDislikeThreshold { get; }
+        /// <summary>命令拒否する忠誠閾値。Roll()のたびにCenter±Spreadの範囲でブレる。</summary>
+        public RandomizedThreshold RefusalLoyaltyThreshold      { get; }
 
+        /// <summary>慎重な武将が撤退進言する兵力閾値。Roll()のたびにCenter±Spreadの範囲でブレる。</summary>
+        public RandomizedThreshold CautiousRetreatSoldiers      { get; }
+
+        /// <summary>野心的な武将が独断行動する忠誠閾値。Roll()のたびにCenter±Spreadの範囲でブレる。</summary>
+        public RandomizedThreshold IndependentActionLoyalty     { get; }
+
+        /// <summary>主君への反感が命令変更を引き起こす閾値。Roll()のたびにCenter±Spreadの範囲でブレる。</summary>
+        public RandomizedThreshold DissatisfiedDislikeThreshold { get; }
+
+        /// <summary>
+        /// int で閾値を直接指定するコンストラクタ。既存テストとの後方互換用。
+        /// Spread=0 の固定閾値として扱われる。seed を指定すると再現性が保証される。
+        /// </summary>
         public OfficerDecision(
             int refusalLoyaltyThreshold      = 20,
             int cautiousRetreatSoldiers      = 300,
             int independentActionLoyalty     = 35,
-            int dissatisfiedDislikeThreshold = 60)
+            int dissatisfiedDislikeThreshold = 60,
+            int? seed                        = null,
+            SpontaneousEventTable? spontaneous = null)
         {
             RefusalLoyaltyThreshold      = refusalLoyaltyThreshold;
             CautiousRetreatSoldiers      = cautiousRetreatSoldiers;
             IndependentActionLoyalty     = independentActionLoyalty;
             DissatisfiedDislikeThreshold = dissatisfiedDislikeThreshold;
+            _rng         = seed.HasValue ? new Random(seed.Value) : new Random();
+            _spontaneous = spontaneous;
         }
 
-        /// <summary>AiParamsから構築する。</summary>
-        public OfficerDecision(AiParams p)
-            : this(p.RefusalLoyaltyThreshold, p.CautiousRetreatSoldiers,
-                   p.IndependentActionLoyalty, p.DissatisfiedDislikeThreshold) { }
+        /// <summary>
+        /// AiParams から構築するコンストラクタ。
+        /// 各閾値は RandomizedThreshold 型で Center と Spread を持つ。
+        /// seed を指定すると再現性が保証される。
+        /// </summary>
+        public OfficerDecision(AiParams p, int? seed = null, SpontaneousEventTable? spontaneous = null)
+        {
+            RefusalLoyaltyThreshold      = p.RefusalLoyaltyThreshold;
+            CautiousRetreatSoldiers      = p.CautiousRetreatSoldiers;
+            IndependentActionLoyalty     = p.IndependentActionLoyalty;
+            DissatisfiedDislikeThreshold = p.DissatisfiedDislikeThreshold;
+            _rng         = seed.HasValue ? new Random(seed.Value) : new Random();
+            _spontaneous = spontaneous;
+        }
 
         /// <summary>
         /// 元の命令リストを武将の意思で評価し、DecisionResult のリストを返す。
@@ -79,7 +106,7 @@ namespace BattleCore.AI
                 int loyalty = membership?.Loyalty ?? officer.Loyalty;
 
                 // ① 忠誠が極めて低い → 命令拒否
-                if (loyalty <= RefusalLoyaltyThreshold
+                if (loyalty <= RefusalLoyaltyThreshold.Roll(_rng)
                     && officer.Personality != OfficerPersonality.Loyal)
                 {
                     yield return DecisionResult.Refuse(
@@ -93,7 +120,7 @@ namespace BattleCore.AI
 
                 // ② 慎重な性格 + 兵力不足 → 撤退進言
                 if (officer.Personality == OfficerPersonality.Cautious
-                    && army.Soldiers <= CautiousRetreatSoldiers)
+                    && army.Soldiers <= CautiousRetreatSoldiers.Roll(_rng))
                 {
                     var retreatTarget = GetRetreatTarget(army, clan, world);
                     if (retreatTarget.HasValue && retreatTarget.Value != army.CurrentHexId)
@@ -112,7 +139,7 @@ namespace BattleCore.AI
 
                 // ③ 野心的 + 低忠誠 → 独断行動
                 if (officer.Personality == OfficerPersonality.Ambitious
-                    && loyalty <= IndependentActionLoyalty)
+                    && loyalty <= IndependentActionLoyalty.Roll(_rng))
                 {
                     var independentTarget = GetIndependentTarget(army, clan, world);
                     if (independentTarget.HasValue)
@@ -165,6 +192,20 @@ namespace BattleCore.AI
                         $"忠誠:{loyalty}",
                         $"性格:{officer.Personality}",
                         enemyArmies != null ? $"最近敵兵力:{enemyArmies.Soldiers}" : "敵なし"));
+
+                // ⑥ 突発イベント評価（命令実行の有無に関わらず毎ターン評価する）
+                if (_spontaneous != null)
+                {
+                    var daimyo = clan.DaimyoOfficerId.HasValue
+                        ? world.Officers.FirstOrDefault(o => o.Id == clan.DaimyoOfficerId.Value)
+                        : null;
+                    var relToDaimyo = daimyo != null
+                        ? world.Relationships.FirstOrDefault(r =>
+                            r.FromOfficerId == officer.Id && r.ToOfficerId == daimyo.Id)
+                        : null;
+                    foreach (var ev in _spontaneous.Evaluate(officer, daimyo, membership, relToDaimyo, world))
+                        yield return DecisionResult.Accept(cmd, move.Reason, ev);
+                }
             }
         }
 
@@ -203,7 +244,9 @@ namespace BattleCore.AI
 
             return world.Castles
                 .Where(c => c.OwnerClanId == clan.Id)
-                .OrderBy(c => Map.HexDistance.Calculate(currentHex, world.Map.GetHexById(c.HexId)!))
+                .Select(c => new { c.HexId, Hex = world.Map.GetHexById(c.HexId) })
+                .Where(x => x.Hex != null)
+                .OrderBy(x => Map.HexDistance.Calculate(currentHex, x.Hex!))
                 .FirstOrDefault()?.HexId;
         }
 
@@ -214,11 +257,13 @@ namespace BattleCore.AI
 
             var target = world.Castles
                 .Where(c => c.OwnerClanId != clan.Id)
-                .OrderBy(c => Map.HexDistance.Calculate(currentHex, world.Map.GetHexById(c.HexId)!))
+                .Select(c => new { c.HexId, Hex = world.Map.GetHexById(c.HexId) })
+                .Where(x => x.Hex != null)
+                .OrderBy(x => Map.HexDistance.Calculate(currentHex, x.Hex!))
                 .FirstOrDefault();
 
             if (target == null) return null;
-            var path = pathFinder.FindPath(world.Map, army.CurrentHexId, target.HexId);
+            var path = _pathFinder.FindPath(world.Map, army.CurrentHexId, target.HexId);
             return path.Count > 1 ? path[1] : null;
         }
 
@@ -227,7 +272,7 @@ namespace BattleCore.AI
             if (!clan.DaimyoOfficerId.HasValue) return false;
             var rel = world.Relationships.FirstOrDefault(r =>
                 r.FromOfficerId == officer.Id && r.ToOfficerId == clan.DaimyoOfficerId.Value);
-            return rel != null && rel.Dislike >= DissatisfiedDislikeThreshold;
+            return rel != null && rel.Dislike >= DissatisfiedDislikeThreshold.Roll(_rng);
         }
     }
 }

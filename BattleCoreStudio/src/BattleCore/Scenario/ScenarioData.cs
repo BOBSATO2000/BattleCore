@@ -53,6 +53,9 @@ namespace BattleCore.Scenario
 
         /// <summary>地形種別文字列。"Plain" / "Forest" / "Mountain"。</summary>
         public string Terrain { get; set; } = "Plain";
+
+        /// <summary>高度（0〜3）。未指定の場合は0。</summary>
+        public int Height { get; set; } = 0;
     }
 
     /// <summary>勢力のDTO。</summary>
@@ -135,6 +138,9 @@ namespace BattleCore.Scenario
 
         /// <summary>指揮官武将ID。未配属の場合は null。</summary>
         public int? OfficerId    { get; set; }
+
+        /// <summary>兵種。未指定の場合は Ashigaru。</summary>
+        public string UnitType   { get; set; } = "Ashigaru";
     }
 
     /// <summary>武将間の関係値のDTO。</summary>
@@ -162,19 +168,35 @@ namespace BattleCore.Scenario
     /// <summary>初期同盟のDTO。</summary>
     public class AllianceData
     {
+        /// <summary>同盟ID。</summary>
         public int Id            { get; set; }
+
+        /// <summary>同盟に関与する勢力ID（1）。</summary>
         public int ClanId1       { get; set; }
+
+        /// <summary>同盟に関与する勢力ID（2）。</summary>
         public int ClanId2       { get; set; }
+
+        /// <summary>同盟の有効Tick数。</summary>
         public int DurationTicks { get; set; } = 20;
     }
 
     /// <summary>城・拠点のDTO。</summary>
     public class CastleData
     {
+        /// <summary>城ID。</summary>
         public int    Id                   { get; set; }
+
+        /// <summary>城の名前。</summary>
         public string Name                 { get; set; } = "";
+
+        /// <summary>城が配置されたHexID。</summary>
         public int    HexId                { get; set; }
+
+        /// <summary>初期占領勢力ID。0=中立。</summary>
         public int    OwnerClanId          { get; set; } = 0;
+
+        /// <summary>毎ティック補充兵力。</summary>
         public int    ReinforcementPerTick { get; set; } = 50;
     }
 

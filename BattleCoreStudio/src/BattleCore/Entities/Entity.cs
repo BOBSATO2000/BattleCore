@@ -6,11 +6,20 @@ namespace BattleCore.Entities
     /// </summary>
     public abstract class Entity
     {
-        /// <summary>エンティティを一意に識別するID。</summary>
+        /// <summary>
+		/// エンティティを一意に識別するID。
+		/// </summary>
         public int Id { get; init; }
 
-        protected Entity(int id) => Id = id;
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		/// <param name="id">エンティティを一意に識別するID。</param>
+		protected Entity(int id) => Id = id;
 
-        protected Entity() { }
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		protected Entity() { }
     }
 }

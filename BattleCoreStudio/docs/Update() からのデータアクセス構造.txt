@@ -1,0 +1,117 @@
+Update() からのデータアクセス構造
+全体の関係図
+Update(SimulationContext context)
+│
+├─ context.Time          GameTime（Tick / Year / Season / Weather）
+├─ context.CommandQueue  命令キュー（Enqueue / Dequeue）
+├─ context.EventQueue    イベントキュー（Enqueue）
+│
+└─ context.World         WorldState ← ここに全エンティティがある
+        │
+        ├─ .Armies        List<Army>
+        ├─ .Clans         List<Clan>
+        ├─ .Officers      List<Officer>
+        ├─ .Castles       List<Castle>
+        ├─ .Memberships   List<Membership>
+        ├─ .Relationships List<Relationship>
+        ├─ .Alliances     List<Alliance>
+        ├─ .Visions       Dictionary<int, VisionData>  ← Key=ArmyId
+        └─ .Map           GameMap
+                │
+                ├─ .Hexes          IReadOnlyList<Hex>
+                ├─ .GetHexById(id) → Hex?
+                └─ .GetNeighbors(hexId) → List<Hex>
+
+Copy
+エンティティ間の参照関係
+エンティティ同士は直接参照せずIDで繋がっている設計です。
+
+Army
+ ├─ .ClanId       → Clans.First(c => c.Id == army.ClanId)
+ ├─ .OfficerId    → Officers.First(o => o.Id == army.OfficerId)
+ └─ .CurrentHexId → Map.GetHexById(army.CurrentHexId)
+
+Membership（中間テーブル）
+ ├─ .OfficerId → Officer
+ └─ .ClanId    → Clan
+
+Relationship
+ ├─ .FromOfficerId → Officer
+ └─ .ToOfficerId   → Officer
+
+Copy
+典型的なアクセスパターン
+① 特定ArmyのOfficerと所属Clanを取得する
+
+public void Update(SimulationContext context)
+{
+    foreach (var army in context.World.Armies)
+    {
+        // Officerを取得
+        var officer = army.OfficerId.HasValue
+            ? context.World.Officers.FirstOrDefault(o => o.Id == army.OfficerId.Value)
+            : null;
+
+        // 所属Clanを取得
+        var clan = context.World.Clans.FirstOrDefault(c => c.Id == army.ClanId);
+
+        // 現在いるHexを取得
+        var hex = context.World.Map.GetHexById(army.CurrentHexId);
+    }
+}
+
+Copy
+csharp
+② ArmyがいるHexの隣接Hexを取得する
+
+var neighbors = context.World.Map.GetNeighbors(army.CurrentHexId);
+var passable  = neighbors.Where(h => h.Terrain != TerrainType.Mountain);
+
+Copy
+csharp
+③ OfficerのMembership（勢力ごとの忠誠）を取得する
+
+var membership = context.World.Memberships
+    .FirstOrDefault(m => m.OfficerId == officer.Id && m.ClanId == army.ClanId);
+int loyalty = membership?.Loyalty ?? officer.Loyalty;
+
+Copy
+csharp
+④ 2武将間のRelationshipを取得する
+
+// 存在しない場合は自動生成される
+var rel = context.World.GetOrCreateRelationship(officerA.Id, officerB.Id);
+rel.Trust += 5;
+
+Copy
+csharp
+⑤ 同Hexにいる敵Armyを探す
+
+var enemies = context.World.Armies
+    .Where(a => a.CurrentHexId == army.CurrentHexId
+             && a.ClanId != army.ClanId
+             && a.Soldiers > 0
+             && !context.World.AreAllied(army.ClanId, a.ClanId));
+
+Copy
+csharp
+⑥ イベントを発火する
+
+context.EventQueue.Enqueue(new SomeEvent(...));
+
+Copy
+csharp
+⑦ 命令をキューに積む
+
+context.CommandQueue.Enqueue(new MoveArmyCommand(army.Id, targetHexId));
+
+Copy
+csharp
+注意点
+エンティティの変更は直接行う — army.LoseSoldiers(100) のようにエンティティのメソッドを呼ぶ。WorldStateのリストを差し替えるのではなく、インスタンスのプロパティを変更する
+
+リストの削除はループ外で行う — LoyaltySystemのように toRemove リストを作って後でまとめて Remove() する
+
+IDで引く処理はLINQのFirstOrDefault — 存在しない場合はnullになるので ?. でnull安全に扱う
+
+

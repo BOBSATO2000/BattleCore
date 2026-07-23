@@ -11,16 +11,28 @@ namespace BattleCore.Events
     /// </summary>
     public class BetrayalEvent : IGameEvent
     {
-        /// <summary>離反した武将のID。</summary>
+        /// <summary>
+		/// 離反した武将のID。
+		/// </summary>
         public int OfficerId { get; }
 
-        /// <summary>離反元の勢力ID。</summary>
+        /// <summary>
+		/// 離反元の勢力ID。
+		/// </summary>
         public int FromClanId { get; }
 
-        /// <summary>離反時の裏切りスコア（デバッグ・ログ用）。</summary>
+        /// <summary>
+		/// 離反時の裏切りスコア（デバッグ・ログ用）。
+		/// </summary>
         public int BetrayalScore { get; }
 
-        public BetrayalEvent(int officerId, int fromClanId, int betrayalScore)
+		/// <summary>
+		/// コンストラクタ
+		/// </summary>
+		/// <param name="officerId">離反した武将のID</param>
+		/// <param name="fromClanId">離反元の勢力ID/param>
+		/// <param name="betrayalScore">離反時の裏切りスコア（デバッグ・ログ用）</param>
+		public BetrayalEvent(int officerId, int fromClanId, int betrayalScore)
         {
             OfficerId     = officerId;
             FromClanId    = fromClanId;

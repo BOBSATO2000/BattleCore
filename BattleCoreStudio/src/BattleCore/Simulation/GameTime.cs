@@ -65,5 +65,11 @@ namespace BattleCore.Simulation
                 _             => Weather.Sunny,
             };
         }
+
+        /// <summary>
+        /// 夜かどうか。Tick奇数=夜、偶数=昼。
+        /// VisionSystem が視界範囲の計算に使用する。
+        /// </summary>
+        public bool IsNight => Tick % 2 == 1;
     }
 }

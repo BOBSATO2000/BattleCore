@@ -17,15 +17,20 @@ namespace BattleCore.Systems
         /// <summary>発火済みトリガーIDのセット。同じイベントの二重発火を防ぐ。</summary>
         private readonly HashSet<string> fired = new();
 
+        /// <summary>triggers リストを注入するコンストラクタ。ScenarioLoader から渡される。</summary>
         public EventTriggerSystem(IEnumerable<EventTriggerData> triggers)
         {
             this.triggers = triggers.ToList();
         }
 
+        /// <summary>
+        /// 全トリガーの条件を評価し、条件を満たしたものを一度だけ発火する。
+        /// 発火済みトリガーは fired セットで管理し二重発火を防ぐ。
+        /// </summary>
         public void Update(SimulationContext context)
         {
-            var tick  = context.Time.Tick;
             var world = context.World;
+            var tick = context.Time.Tick;
 
             foreach (var t in triggers)
             {

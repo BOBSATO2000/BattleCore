@@ -1,6 +1,6 @@
 {
-  "RefusalLoyaltyThreshold": 20,
-  "CautiousRetreatSoldiers": 200,
-  "IndependentActionLoyalty": 35,
-  "DissatisfiedDislikeThreshold": 60
+  "RefusalLoyaltyThreshold":      { "Center": 20,  "Spread": 8  },
+  "CautiousRetreatSoldiers":      { "Center": 200, "Spread": 60 },
+  "IndependentActionLoyalty":     { "Center": 35,  "Spread": 10 },
+  "DissatisfiedDislikeThreshold": { "Center": 60,  "Spread": 15 }
 }

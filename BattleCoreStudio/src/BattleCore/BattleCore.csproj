@@ -6,4 +6,10 @@
     <Nullable>enable</Nullable>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Remove="**\*の競合コピー*" />
+    <EmbeddedResource Remove="**\*の競合コピー*" />
+    <None Remove="**\*の競合コピー*" />
+  </ItemGroup>
+
 </Project>

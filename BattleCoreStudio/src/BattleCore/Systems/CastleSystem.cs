@@ -10,10 +10,12 @@ namespace BattleCore.Systems
     /// </summary>
     public class CastleSystem : ISimulationSystem
     {
+        /// <summary>
+		/// 城のHexにいる軍を確認し、占領判定と兵力補充を処理する。
+		/// </summary>
         public void Update(SimulationContext context)
         {
             var world = context.World;
-
             foreach (var castle in world.Castles)
             {
                 var armiesOnHex = world.Armies

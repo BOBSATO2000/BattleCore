@@ -15,6 +15,10 @@ namespace BattleCore.Systems
         /// <summary>GameOverイベント発火済みフラグ。二重発火を防ぐ。</summary>
         private bool gameOver = false;
 
+        /// <summary>
+        /// 兵力が残っている勢力数を確認し、勝利・引き分けを判定する。
+        /// 二重発火防止のため gameOver フラグで管理する。
+        /// </summary>
         public void Update(SimulationContext context)
         {
             if (gameOver) return;

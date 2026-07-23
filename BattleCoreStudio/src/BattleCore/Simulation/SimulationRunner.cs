@@ -12,6 +12,7 @@ namespace BattleCore.Simulation
         /// <summary>ターン間の待機ミリ秒。0 = MAX速度（Sleep なし）。</summary>
         public int IntervalMs { get; set; } = 1000;
 
+        /// <summary>自動実行中かどうか。</summary>
         public bool IsRunning { get; private set; }
 
         /// <summary>1ターン完了時に発火。引数は現在の統計。</summary>
@@ -44,15 +45,15 @@ namespace BattleCore.Simulation
                         _engine.Step();
                         stats.Collect(_engine.Context);
 
-                        TurnCompleted?.Invoke(stats);
+                        // MAX速度時はUI更新を10ターンに1回に間引く
+                        bool isLast = stats.WinnerClanId.HasValue
+                            || stats.WinReason.Length > 0
+                            || (maxTurns > 0 && stats.TurnsExecuted >= maxTurns);
 
-                        // 勝利判定
-                        if (stats.WinnerClanId.HasValue || stats.WinReason.Length > 0)
-                            break;
+                        if (IntervalMs > 0 || stats.TurnsExecuted % 10 == 0 || isLast)
+                            TurnCompleted?.Invoke(stats);
 
-                        // ターン上限
-                        if (maxTurns > 0 && stats.TurnsExecuted >= maxTurns)
-                            break;
+                        if (isLast) break;
 
                         if (IntervalMs > 0)
                             await Task.Delay(IntervalMs, token).ConfigureAwait(false);
@@ -67,12 +68,14 @@ namespace BattleCore.Simulation
             }, token);
         }
 
+        /// <summary>実行を一時停止する。RunAsync の CancellationToken をキャンセルする。</summary>
         public void Pause()
         {
             _cts?.Cancel();
             IsRunning = false;
         }
 
+        /// <summary>Pause の別名。</summary>
         public void Stop() => Pause();
 
         /// <summary>
@@ -113,9 +116,8 @@ namespace BattleCore.Simulation
                         summary.Add(record);
                         onRunCompleted?.Invoke(i + 1, stats);
 
-                        // MAX以外は少し間を置く
-                        if (IntervalMs > 0)
-                            await Task.Delay(Math.Min(IntervalMs, 50), token).ConfigureAwait(false);
+                        // UIスレッドに制御を返す機会を与える
+                        await Task.Delay(1, token).ConfigureAwait(false);
                     }
                 }
                 catch (OperationCanceledException) { }

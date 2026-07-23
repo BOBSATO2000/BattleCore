@@ -1,0 +1,51 @@
+全エンティティをまとめます。
+
+-------------------------------------------------------
+Army（最も動的）
+プロパティ	変更するSystem
+CurrentHexId	MovementSystem
+DestinationHexId	CommandExecutionSystem / ClanDecisionSystem（セット）、MovementSystem（クリア）
+Soldiers	BattleSystem（減少）、CastleSystem / SupplySystem（補充）
+ClanId	LoyaltySystem（離反時）
+ActionPoints	SimulationEngine（毎ターンリセット）、MovementSystem（消費）
+MoveCooldown	MovementSystem
+
+-------------------------------------------------------
+Officer
+プロパティ	変更するSystem
+Loyalty	LoyaltySystem
+Leadership	OfficerGrowth（戦闘勝利で+1）
+Strategy	OfficerGrowth（戦闘勝利で+1）
+BattleWins	BattleSystem
+※ Intelligence / Ambition / Courage / Personality は初期値から変わらない（現状）
+
+-------------------------------------------------------
+Castle
+プロパティ	変更するSystem
+OwnerClanId	CastleSystem（占領時）
+
+-------------------------------------------------------
+Membership
+プロパティ	変更するSystem
+Loyalty	LoyaltySystem
+インスタンス自体の削除	LoyaltySystem（離反時）
+インスタンス自体の追加	RecruitmentSystem（仕官時）
+
+-------------------------------------------------------
+Relationship
+プロパティ	変更するSystem
+Trust	RelationshipSystem
+Respect	RelationshipSystem
+Dislike	RelationshipSystem
+インスタンス自体の追加	WorldState.GetOrCreateRelationship()
+
+-------------------------------------------------------
+Alliance
+プロパティ	変更するSystem
+RemainingTicks	DiplomacySystem（毎Step -1）
+インスタンス自体の削除	DiplomacySystem（期限切れ時）
+インスタンス自体の追加	DiplomacySystem（AI自動同盟）
+
+-------------------------------------------------------
+Clan・Hex
+変わらない（静的）。Clan.Gold は将来実装予定のフィールドで現状未使用です。

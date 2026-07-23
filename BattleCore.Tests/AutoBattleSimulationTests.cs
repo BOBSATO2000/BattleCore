@@ -46,9 +46,12 @@ namespace BattleCore.Tests
         {
             engine.Step();
 
-            Assert.IsTrue(
-                army1.CurrentHexId != 1 ||
-                army2.CurrentHexId != 2);
+            // 占有ルール導入後：敵Hexへの移動はブロックされるが、
+            // どちらかが移動するか、または戦闘トリガーが発火される
+            bool moved = army1.CurrentHexId != 1 || army2.CurrentHexId != 2;
+            bool battleTriggered = army1.Soldiers < 1000 || army2.Soldiers < 1000;
+            Assert.IsTrue(moved || battleTriggered,
+                "移動または戦闘が発生するはず");
         }
 
         [TestMethod]
