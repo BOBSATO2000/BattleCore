@@ -28,6 +28,7 @@ namespace BattleCoreStudio
             btnAuto = new Button();
             btnStop = new Button();
             btnRestart = new Button();
+            btnConfirm = new Button();
             lblSpeed = new Label();
             cmbSpeed = new ComboBox();
             lblStatus = new Label();
@@ -139,6 +140,7 @@ namespace BattleCoreStudio
             panel1.Controls.Add(btnAuto);
             panel1.Controls.Add(btnStop);
             panel1.Controls.Add(btnRestart);
+            panel1.Controls.Add(btnConfirm);
             panel1.Controls.Add(lblSpeed);
             panel1.Controls.Add(cmbSpeed);
             panel1.Controls.Add(lblStatus);
@@ -186,9 +188,21 @@ namespace BattleCoreStudio
             btnRestart.Text = "↺ もう一度";
             btnRestart.Click += btnRestart_Click;
             // 
+            // btnConfirm
+            // 
+            btnConfirm.Enabled = false;
+            btnConfirm.Location = new Point(371, 9);
+            btnConfirm.Name = "btnConfirm";
+            btnConfirm.Size = new Size(90, 32);
+            btnConfirm.TabIndex = 15;
+            btnConfirm.Text = "✔ 命令確定";
+            btnConfirm.BackColor = Color.FromArgb(40, 80, 40);
+            btnConfirm.ForeColor = Color.White;
+            btnConfirm.Click += btnConfirm_Click;
+            // 
             // lblSpeed
             // 
-            lblSpeed.Location = new Point(471, 15);
+            lblSpeed.Location = new Point(571, 15);
             lblSpeed.Name = "lblSpeed";
             lblSpeed.Size = new Size(36, 20);
             lblSpeed.TabIndex = 12;
@@ -198,16 +212,16 @@ namespace BattleCoreStudio
             // 
             cmbSpeed.DropDownStyle = ComboBoxStyle.DropDownList;
             cmbSpeed.Items.AddRange(new object[] { "遅い(2s)", "普通(1s)", "速い(0.5s)" });
-            cmbSpeed.Location = new Point(377, 11);
+            cmbSpeed.Location = new Point(477, 11);
             cmbSpeed.Name = "cmbSpeed";
             cmbSpeed.Size = new Size(80, 23);
             cmbSpeed.TabIndex = 13;
             // 
             // lblStatus
             // 
-            lblStatus.Location = new Point(542, 15);
+            lblStatus.Location = new Point(642, 15);
             lblStatus.Name = "lblStatus";
-            lblStatus.Size = new Size(360, 20);
+            lblStatus.Size = new Size(460, 20);
             lblStatus.TabIndex = 14;
             lblStatus.Text = "Tick: 0  Year: 1560  春";
             // 
@@ -397,27 +411,28 @@ namespace BattleCoreStudio
         private ToolStripMenuItem  menuLoad;
         private ToolStripSeparator menuSep;
         private ToolStripMenuItem  menuExit;
-        private ToolStripMenuItem menuSim;
-        private ToolStripMenuItem menuSimRun;
-        private Panel panel1;
-        private Button btnStep;
-        private Button btnAuto;
-        private Button btnStop;
-        private Button btnRestart;
-        private Label lblSpeed;
-        private ComboBox cmbSpeed;
-        private Label lblStatus;
-        private SplitContainer splitContainer1;
-        private Panel pnlMap;
-        private Panel panel2;
-        private GroupBox groupBox1;
-        private SplitContainer splitContainer2;
-        private ListBox lstEvents;
-        private GroupBox groupBox4;
-        private ListBox lstArmies;
-        private GroupBox groupBox3;
-        private Panel pnlClans;
-        private GroupBox groupBox2;
-        private RichTextBox rtbDebug;
+        private ToolStripMenuItem  menuSim;
+        private ToolStripMenuItem  menuSimRun;
+        private Panel              panel1;
+        private Button             btnStep;
+        private Button             btnAuto;
+        private Button             btnStop;
+        private Button             btnRestart;
+        private Button             btnConfirm;
+        private Label              lblSpeed;
+        private ComboBox           cmbSpeed;
+        private Label              lblStatus;
+        private SplitContainer     splitContainer1;
+        private Panel              pnlMap;
+        private Panel              panel2;
+        private GroupBox           groupBox1;
+        private SplitContainer     splitContainer2;
+        private ListBox            lstEvents;
+        private GroupBox           groupBox4;
+        private ListBox            lstArmies;
+        private GroupBox           groupBox3;
+        private Panel              pnlClans;
+        private GroupBox           groupBox2;
+        private RichTextBox        rtbDebug;
     }
 }

@@ -35,13 +35,21 @@ namespace BattleCore.Systems
         private readonly OfficerDecision             _officerDecision;
         private readonly IPathFinder                 _pathFinder = new HexPathFinder();
 
+        /// <summary>PlayerCommander が登録されているか。SimulationEngine が参照する。</summary>
+        public bool HasPlayerCommander { get; private set; } = false;
+
         public CommanderSystem(OfficerDecision? officerDecision = null)
         {
             _officerDecision = officerDecision ?? new OfficerDecision();
         }
 
         /// <summary>勢力に Commander を登録する。</summary>
-        public void Register(ICommander commander) => _commanders[commander.ClanId] = commander;
+        public void Register(ICommander commander)
+        {
+            _commanders[commander.ClanId] = commander;
+            if (commander is PlayerCommander)
+                HasPlayerCommander = true;
+        }
 
         public void Update(SimulationContext context)
         {

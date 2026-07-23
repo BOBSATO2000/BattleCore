@@ -132,26 +132,49 @@ namespace BattleCoreStudio
             UpdateUI();
         }
 
+        /// <summary>命令確定ボタン：プレイヤー入力待ちを解除してシミュレーションを再開する。</summary>
+        private void btnConfirm_Click(object sender, EventArgs e)
+        {
+            engine.ConfirmPlayerInput();
+            UpdateUI();
+        }
+
         private void btnAuto_Click(object sender, EventArgs e)
         {
+            // オート中は入力待ちを自動確定する
             autoTimer.Interval = cmbSpeed.SelectedIndex switch
             {
                 0 => 2000,
                 2 => 500,
                 _ => 1000,
             };
+            autoTimer.Tick -= AutoTimer_Tick;
+            autoTimer.Tick += AutoTimer_Tick;
             autoTimer.Start();
-            btnAuto.Enabled = false;
-            btnStop.Enabled = true;
-            btnStep.Enabled = false;
+            btnAuto.Enabled    = false;
+            btnStop.Enabled    = true;
+            btnStep.Enabled    = false;
+            btnConfirm.Enabled = false;
+        }
+
+        private void AutoTimer_Tick(object? sender, EventArgs e)
+        {
+            // 入力待ち中なら自動確定してから進める
+            if (engine.WaitingForPlayer)
+                engine.ConfirmPlayerInput();
+            else
+                engine.Step();
+            UpdateUI();
         }
 
         private void btnStop_Click(object sender, EventArgs e)
         {
             autoTimer.Stop();
-            btnAuto.Enabled = true;
-            btnStop.Enabled = false;
-            btnStep.Enabled = true;
+            btnAuto.Enabled    = true;
+            btnStop.Enabled    = false;
+            btnStep.Enabled    = true;
+            // 入力待ち中なら確定ボタンを有効化
+            btnConfirm.Enabled = engine.WaitingForPlayer && _playerClanId != 0;
         }
 
         private void btnRestart_Click(object sender, EventArgs e)
@@ -537,6 +560,14 @@ namespace BattleCoreStudio
                 : "  [観戦]";
             lblStatus.Text = $"Tick:{t.Tick}  {t.Year}年 {SeasonName(t.Season)}{weatherText}  {phaseText}{playerText}";
 
+            // 入力待ち状態に応じてボタン制御（オート中は変更しない）
+            if (!autoTimer.Enabled)
+            {
+                bool waiting = engine.WaitingForPlayer && _playerClanId != 0;
+                btnStep.Enabled    = !waiting;
+                btnConfirm.Enabled = waiting;
+            }
+
             // 勢力概要パネル
             pnlClans.Controls.Clear();
             int py = 4;
@@ -696,10 +727,23 @@ namespace BattleCoreStudio
                     btnAuto.Enabled    = false;
                     btnStop.Enabled    = false;
                     btnStep.Enabled    = false;
+                    btnConfirm.Enabled = false;
                     btnRestart.Enabled = true;
                     lstEvents.Items.Insert(0, $"[Tick{t.Tick}] 【ゲーム終了】{go.Reason}");
                     MessageBox.Show(go.Reason, "ゲーム終了",
                         MessageBoxButtons.OK, MessageBoxIcon.Information);
+                }
+                else if (ev is PlayerInputRequiredEvent pir)
+                {
+                    // プレイヤー入力待ちモードへ移行
+                    var clanName = world.Clans.FirstOrDefault(c => c.Id == pir.PlayerClanId)?.Name ?? "?";
+                    lstEvents.Items.Insert(0,
+                        $"[Tick{pir.Tick}] ★ {clanName}の命令入力フェーズ―命令を入力して「命令確定」を押してください");
+                    if (!autoTimer.Enabled)
+                    {
+                        btnConfirm.Enabled = true;
+                        btnStep.Enabled    = false;
+                    }
                 }
             }
 
